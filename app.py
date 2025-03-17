@@ -31,3 +31,13 @@ codigo_curso = df_cursos[df_cursos["Nombre del Curso o Diplomado"] == curso_sele
 st.write(f"Has seleccionado el curso: **{curso_seleccionado}**")
 st.write(f"Código del curso: `{codigo_curso}`")
 
+# URL pública de la hoja de cálculo de estudiantes en formato CSV
+url_estudiantes = "https://docs.google.com/spreadsheets/d/1prUt0i0EWolsX_LuGl_yKzXPUWmy6CzCxi28zued5BA/gviz/tq?tqx=out:csv"
+
+# Cargar los datos de los estudiantes
+@st.cache_data
+def load_students():
+    return pd.read_csv(url_estudiantes)
+
+df_estudiantes = load_students()
+
