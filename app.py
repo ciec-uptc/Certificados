@@ -223,3 +223,45 @@ if st.button("🎓 Generar Certificado"):
             )
     else:
         st.error("⚠️ No se puede generar el certificado sin validación.")
+
+import comtypes.client  # Solo si se ejecuta en Windows
+import os
+
+def pptx_a_pdf(certificado_stream):
+    """Convierte el PowerPoint generado a PDF y devuelve el archivo PDF en memoria."""
+    
+    # Guardar temporalmente el archivo PPTX
+    temp_pptx = "temp_certificado.pptx"
+    temp_pdf = "temp_certificado.pdf"
+
+    with open(temp_pptx, "wb") as f:
+        f.write(certificado_stream.getbuffer())
+
+    try:
+        # Convertir a PDF usando la API de CloudConvert (Opción Externa)
+        API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiY2ZjZDIyZjRlYjE3MTFiZDEwODk5MDY4M2JjNjM5MDFlNTViMjU0ZTlmYmEyYzg3YWVkMDMzZDYwMGZkM2Y2OWJlZjg3MjczMmM5NTI4N2QiLCJpYXQiOjE3NDIwODc3MjYuNTQ1MTg3LCJuYmYiOjE3NDIwODc3MjYuNTQ1MTg5LCJleHAiOjQ4OTc3NjEzMjYuNTQwNTksInN1YiI6IjcxMzQ2NDY4Iiwic2NvcGVzIjpbInRhc2sucmVhZCIsInRhc2sud3JpdGUiXX0.mBzno6enxy7JHNpNm3Q5iP5lN4uqYrokU_avbVg0e0AIAtvqNK8oILKaBf9iLNZWtguqaY5sUfHTQe5-taduwn5JoNDqngUKOr6kPrk2F0cEnuGfHJGZ2Q8tKbgZ_cSbvbm-_ge1Mb1f0P0HZDIejq5alD-YTBn_hJ1aA8qe7jy35cGoE70FlU_dzZ8rh-kExU_RBb10hHYjVBWjOqlJPKlYCr89mrE_Sb2sybcYxebE5-bFHsds5BMPAiHr5mDBeUyQOyanwPgn1IocNQWNznmF4mWSuqXm6WftR-9WNjBpcVjSYENwpj8yLPwqNolJC1nteD4d_2PqTPmsZo6xSxL2_SPdziWY7EGpumAcNrEyYc2ijwDBFmQPGv3z8-7Gt5zpARwKbeg5f_C1nJtlhhpfgzoRMsX24WApJYngSYuoj9MjGEyjVwg-3VJFY1idhbXFAfYUUbxsstdvJc6j04aebAz6UbwBIoXXbuUOuO50D7MEox4QosIs6KVYPh3cVTzesbYBfQSqofqOxH0ogS6uxrN8578ihGIQUu2opITkUZTsi4Ff8AAwesGwdytX52BGGdSsBWHbftxuxwqQK3qnuVS3dm5aKBctn0Jw6uwis9W1hnCVfWCaiaZgypLndaKGwuFm2JcmL7AD0azH5w6zdjkXQZEUIlHJXB_ozIE"  # Reemplaza con tu clave
+        url_api = "https://api.cloudconvert.com/v2/convert"
+        headers = {
+            "Authorization": f"Bearer {API_KEY}",
+            "Content-Type": "application/json"
+        }
+        data = {
+            "input": "upload",
+            "file": temp_pptx,
+            "output_format": "pdf"
+        }
+
+        response = requests.post(url_api, headers=headers, json=data)
+        if response.status_code == 200:
+            pdf_url = response.json()["data"]["url"]
+            pdf_response = requests.get(pdf_url)
+            pdf_stream = BytesIO(pdf_response.content)
+            return pdf_stream
+
+        else:
+            st.error("❌ Error al convertir el archivo a PDF.")
+            return None
+
+    except Exception as e:
+        st.error(f"Error en la conversión: {e}")
+        return None
