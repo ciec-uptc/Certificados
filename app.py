@@ -18,6 +18,10 @@ def load_data():
 
 df_cursos = load_data()
 
+# Cargar nuevamente los datos sin caché para verificar actualización
+df_cursos = pd.read_csv(url)  # Sin @st.cache_data
+st.write("Nuevas columnas en la hoja de cálculo:", df_cursos.columns.tolist())
+
 st.write("Columnas disponibles en la hoja de cálculo:", df_cursos.columns.tolist())
 
 # Mostrar los primeros registros para verificar
