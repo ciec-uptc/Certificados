@@ -204,8 +204,16 @@ def generar_certificado(nombre, documento, curso, duracion, fecha, qr_img):
 import subprocess
 import os
 
+def instalar_unoconv():
+    """Instala unoconv en el servidor si no está instalado."""
+    try:
+        subprocess.run(["apt-get", "install", "-y", "unoconv"], check=True)
+        st.success("✅ unoconv instalado correctamente.")
+    except Exception as e:
+        st.error(f"❌ Error instalando unoconv: {e}")
+
 def pptx_a_pdf(certificado_pptx):
-    """Convierte un archivo PPTX a PDF en un entorno Linux usando LibreOffice."""
+    """Convierte un archivo PPTX a PDF usando unoconv."""
     
     temp_pptx = "certificado.pptx"
     temp_pdf = "certificado.pdf"
@@ -215,8 +223,11 @@ def pptx_a_pdf(certificado_pptx):
         f.write(certificado_pptx.getbuffer())
 
     try:
-        # Usar libreoffice para convertir PPTX a PDF
-        subprocess.run(["libreoffice", "--headless", "--convert-to", "pdf", temp_pptx], check=True)
+        # Verificar e instalar unoconv si es necesario
+        instalar_unoconv()
+
+        # Convertir a PDF usando unoconv
+        subprocess.run(["unoconv", "-f", "pdf", temp_pptx], check=True)
 
         # Leer el archivo PDF resultante
         with open(temp_pdf, "rb") as pdf_file:
