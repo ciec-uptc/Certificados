@@ -140,7 +140,9 @@ def cargar_plantilla():
 
 plantilla_stream = cargar_plantilla()
 
-# Función para generar el certificado
+from pptx.dml.color import RGBColor
+
+#Generar certificado
 def generar_certificado(nombre, documento, curso, duracion, fecha, qr_img):
     if plantilla_stream:
         prs = Presentation(plantilla_stream)  # Cargar la plantilla en memoria
@@ -152,45 +154,45 @@ def generar_certificado(nombre, documento, curso, duracion, fecha, qr_img):
         duracion = str(duracion) if pd.notna(duracion) else ""
         fecha = str(fecha) if pd.notna(fecha) else ""
 
-        # Modificar los textos sin alterar su formato original
+        # Modificar los textos sin perder formato
         for slide in prs.slides:
             for shape in slide.shapes:
                 if shape.has_text_frame and shape.text_frame.text:
                     text = shape.text_frame.text.strip()
 
-                    if "Nombres y Apellidos" in text:
-                        for para in shape.text_frame.paragraphs:
-                            para.text = nombre
-                    elif "Documento" in text:
-                        for para in shape.text_frame.paragraphs:
-                            para.text = documento
-                    elif "Título" in text:
-                        for para in shape.text_frame.paragraphs:
-                            para.text = curso
-                    elif "Dur" in text:
-                        for para in shape.text_frame.paragraphs:
-                            para.text = duracion
-                    elif "Fecha" in text:
-                        for para in shape.text_frame.paragraphs:
-                            para.text = fecha
+                    for para in shape.text_frame.paragraphs:
+                        for run in para.runs:  # Mantiene el formato original
+                            if "Nombres y Apellidos" in text:
+                                run.text = nombre
+                            elif "Documento" in text:
+                                run.text = documento
+                            elif "Título" in text:
+                                run.text = curso
+                            elif "Dur" in text:
+                                run.text = duracion
+                            elif "Fecha" in text:
+                                run.text = fecha
 
         # Insertar el código QR reemplazando "QR Aquí"
         for slide in prs.slides:
+            qr_eliminado = False
             for shape in slide.shapes:
                 if shape.has_text_frame and "QR Aquí" in shape.text_frame.text:
-                    # Guardar la posición y tamaño del cuadro de texto del QR
                     left, top, width, height = shape.left, shape.top, shape.width, shape.height
-
-                    # Eliminar el cuadro de texto original (línea punteada)
-                    slide.shapes._spTree.remove(shape._element)
+                    
+                    # Si el cuadro tiene borde punteado, se elimina
+                    if shape.line and shape.line.dash_style: 
+                        slide.shapes._spTree.remove(shape._element)
+                        qr_eliminado = True
 
                     # Guardar el QR como imagen
                     qr_stream = BytesIO()
                     qr_img.save(qr_stream, format="PNG")
                     qr_stream.seek(0)
 
-                    # Insertar el QR en la misma posición y tamaño del cuadro de texto eliminado
-                    slide.shapes.add_picture(qr_stream, left, top, width, height)
+                    # Insertar el QR solo si se eliminó el cuadro
+                    if qr_eliminado:
+                        slide.shapes.add_picture(qr_stream, left, top, width, height)
 
         # Guardar el certificado como un archivo en memoria
         certificado_stream = BytesIO()
@@ -202,7 +204,6 @@ def generar_certificado(nombre, documento, curso, duracion, fecha, qr_img):
         st.error("❌ No se pudo generar el certificado.")
         return None
 
-# Botón para generar el certificado
 # Botón para generar el certificado
 if st.button("🎓 Generar Certificado"):
     if st.session_state.validado:
