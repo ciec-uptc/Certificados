@@ -145,27 +145,39 @@ def generar_certificado(nombre, documento, curso, duracion, fecha, qr_img):
     if plantilla_stream:
         prs = Presentation(plantilla_stream)  # Cargar la plantilla en memoria
 
+        # Asegurar que los valores no sean NaN ni None
+        nombre = str(nombre) if pd.notna(nombre) else ""
+        documento = str(documento) if pd.notna(documento) else ""
+        curso = str(curso) if pd.notna(curso) else ""
+        duracion = str(duracion) if pd.notna(duracion) else ""
+        fecha = str(fecha) if pd.notna(fecha) else ""
+
         # Modificar los textos en la diapositiva
         for slide in prs.slides:
             for shape in slide.shapes:
-                if shape.has_text_frame and shape.text_frame.text:  # Verifica que tenga texto
+                if shape.has_text_frame and shape.text_frame.text:  # Verificar que tenga texto
                     text = shape.text_frame.text.strip()
 
                     if "Nombres y Apellidos" in text:
                         shape.text_frame.clear()
-                        shape.text_frame.add_paragraph().text = nombre
+                        p = shape.text_frame.add_paragraph()
+                        p.text = nombre
                     elif "Documento" in text:
                         shape.text_frame.clear()
-                        shape.text_frame.add_paragraph().text = documento
+                        p = shape.text_frame.add_paragraph()
+                        p.text = documento
                     elif "Título" in text:
                         shape.text_frame.clear()
-                        shape.text_frame.add_paragraph().text = curso
+                        p = shape.text_frame.add_paragraph()
+                        p.text = curso
                     elif "Dur" in text:
                         shape.text_frame.clear()
-                        shape.text_frame.add_paragraph().text = duracion
+                        p = shape.text_frame.add_paragraph()
+                        p.text = duracion
                     elif "Fecha" in text:
                         shape.text_frame.clear()
-                        shape.text_frame.add_paragraph().text = fecha
+                        p = shape.text_frame.add_paragraph()
+                        p.text = fecha
 
         # Insertar el código QR reemplazando "QR Aquí"
         for slide in prs.slides:
