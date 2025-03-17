@@ -73,7 +73,7 @@ import qrcode
 from io import BytesIO
 
 # Obtener el enlace de validación para el curso seleccionado
-url_validacion = df_cursos[df_cursos["Código"] == codigo_curso]["validación"].values[0]
+url_validacion = df_cursos[df_cursos["Código"] == codigo_curso]["Validación"].values[0]
 
 if "http" in url_validacion:  # Verificar que sea un enlace válido
     # Generar el código QR
