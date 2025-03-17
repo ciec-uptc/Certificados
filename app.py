@@ -84,7 +84,7 @@ if "http" in url_validacion:  # Verificar que sea un enlace válido
 
     # Mostrar el código QR en Streamlit
     st.subheader("Código QR de validación")
-    st.image(qr_img, caption="Escanéalo para verificar tu certificado", use_column_width=False)
+    st.image(qr_img, caption="Escanéalo para verificar tu certificado", use_container_width=True)
 else:
     st.warning("⚠️ Este curso no tiene un enlace de validación asignado.")
 
