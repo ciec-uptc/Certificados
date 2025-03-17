@@ -1,3 +1,2 @@
 qrcode[pil]
 python-pptx
-libreoffice
