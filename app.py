@@ -20,13 +20,12 @@ df_cursos = load_data()
 
 # Cargar nuevamente los datos sin caché para verificar actualización
 df_cursos = pd.read_csv(url)  # Sin @st.cache_data
-st.write("Nuevas columnas en la hoja de cálculo:", df_cursos.columns.tolist())
 
 st.write("Columnas disponibles en la hoja de cálculo:", df_cursos.columns.tolist())
 
 # Mostrar los primeros registros para verificar
 st.subheader("Lista de cursos disponibles")
-st.dataframe(df_cursos[["Código", "Nombre del Curso o Diplomado", "Cohorte", "Fecha", "Duración","Docente"]])
+st.dataframe(df_cursos[["Código", "Nombre del Curso o Diplomado", "Cohorte", "Fecha", "Duración","Validación"]])
 
 # Seleccionar el curso desde un selectbox
 curso_seleccionado = st.selectbox("📚 Seleccione un curso o diplomado", df_cursos["Nombre del Curso o Diplomado"].unique())
