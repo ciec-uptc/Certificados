@@ -103,3 +103,45 @@ if response.status_code == 200:
     st.success("✅ Plantilla descargada correctamente.")
 else:
     st.error("❌ No se pudo descargar la plantilla.")
+
+from pptx import Presentation
+from pptx.util import Inches
+from io import BytesIO
+
+# Cargar la plantilla
+prs = Presentation("plantilla_certificado.pptx")
+
+# Buscar y reemplazar texto en la diapositiva
+for slide in prs.slides:
+    for shape in slide.shapes:
+        if hasattr(shape, "text"):
+            if "{NOMBRE_ESTUDIANTE}" in shape.text:
+                shape.text = shape.text.replace("{NOMBRE_ESTUDIANTE}", nombre_estudiante)
+            if "{DOCUMENTO}" in shape.text:
+                shape.text = shape.text.replace("{DOCUMENTO}", documento_estudiante)
+            if "{NOMBRE_CURSO}" in shape.text:
+                shape.text = shape.text.replace("{NOMBRE_CURSO}", curso_seleccionado)
+            if "{FECHA_CURSO}" in shape.text:
+                shape.text = shape.text.replace("{FECHA_CURSO}", df_cursos[df_cursos["Código"] == codigo_curso]["Fecha"].values[0])
+            if "{DURACION}" in shape.text:
+                shape.text = shape.text.replace("{DURACION}", df_cursos[df_cursos["Código"] == codigo_curso]["Duración"].values[0])
+            if "{DOCENTE}" in shape.text:
+                shape.text = shape.text.replace("{DOCENTE}", df_cursos[df_cursos["Código"] == codigo_curso]["Docente"].values[0])
+
+# Insertar el código QR en la plantilla
+slide = prs.slides[0]  # Suponiendo que la primera diapositiva es la del certificado
+left = Inches(6)  # Ajustar posición
+top = Inches(4)
+pic = slide.shapes.add_picture(qr_img, left, top, width=Inches(2), height=Inches(2))
+
+# Guardar el nuevo certificado como archivo
+output = BytesIO()
+prs.save(output)
+output.seek(0)
+
+# Permitir descarga del certificado en Streamlit
+st.subheader("🎉 ¡Certificado Generado!")
+st.download_button(label="📥 Descargar Certificado",
+                   data=output,
+                   file_name=f"Certificado_{nombre_estudiante}.pptx",
+                   mime="application/vnd.openxmlformats-officedocument.presentationml.presentation")
