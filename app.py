@@ -152,22 +152,27 @@ def generar_certificado(nombre, documento, curso, duracion, fecha, qr_img):
         duracion = str(duracion) if pd.notna(duracion) else ""
         fecha = str(fecha) if pd.notna(fecha) else ""
 
-        # Modificar los textos sin perder formato
+        # Modificar los textos sin alterar su formato original
         for slide in prs.slides:
             for shape in slide.shapes:
                 if shape.has_text_frame and shape.text_frame.text:
                     text = shape.text_frame.text.strip()
 
                     if "Nombres y Apellidos" in text:
-                        shape.text_frame.paragraphs[0].text = nombre
+                        for para in shape.text_frame.paragraphs:
+                            para.text = nombre
                     elif "Documento" in text:
-                        shape.text_frame.paragraphs[0].text = documento
+                        for para in shape.text_frame.paragraphs:
+                            para.text = documento
                     elif "Título" in text:
-                        shape.text_frame.paragraphs[0].text = curso
+                        for para in shape.text_frame.paragraphs:
+                            para.text = curso
                     elif "Dur" in text:
-                        shape.text_frame.paragraphs[0].text = duracion
+                        for para in shape.text_frame.paragraphs:
+                            para.text = duracion
                     elif "Fecha" in text:
-                        shape.text_frame.paragraphs[0].text = fecha
+                        for para in shape.text_frame.paragraphs:
+                            para.text = fecha
 
         # Insertar el código QR reemplazando "QR Aquí"
         for slide in prs.slides:
@@ -175,8 +180,8 @@ def generar_certificado(nombre, documento, curso, duracion, fecha, qr_img):
                 if shape.has_text_frame and "QR Aquí" in shape.text_frame.text:
                     # Guardar la posición y tamaño del cuadro de texto del QR
                     left, top, width, height = shape.left, shape.top, shape.width, shape.height
-                    
-                    # Eliminar el cuadro de texto original
+
+                    # Eliminar el cuadro de texto original (línea punteada)
                     slide.shapes._spTree.remove(shape._element)
 
                     # Guardar el QR como imagen
@@ -184,7 +189,7 @@ def generar_certificado(nombre, documento, curso, duracion, fecha, qr_img):
                     qr_img.save(qr_stream, format="PNG")
                     qr_stream.seek(0)
 
-                    # Insertar el QR en la misma posición
+                    # Insertar el QR en la misma posición y tamaño del cuadro de texto eliminado
                     slide.shapes.add_picture(qr_stream, left, top, width, height)
 
         # Guardar el certificado como un archivo en memoria
