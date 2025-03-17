@@ -90,8 +90,8 @@ else:
 
 import requests
 
-# URL del archivo de Google Slides en formato PowerPoint (.pptx)
-url_plantilla = "https://docs.google.com/presentation/d/1Ta3jm56rKw1Q6i4cPQ-Sj0WzrCyveLNj/export/pptx"
+# URL del archivo en GitHub Raw
+url_plantilla = "https://raw.githubusercontent.com/ciec-uptc/Certificados/main/Plantilla%20base.pptx"
 
 # Descargar la plantilla
 st.subheader("Descargando plantilla de certificado...")
@@ -100,9 +100,9 @@ response = requests.get(url_plantilla)
 if response.status_code == 200:
     with open("plantilla_certificado.pptx", "wb") as f:
         f.write(response.content)
-    st.success("✅ Plantilla descargada correctamente.")
+    st.success("✅ Plantilla descargada correctamente desde GitHub.")
 else:
-    st.error("❌ No se pudo descargar la plantilla.")
+    st.error("❌ No se pudo descargar la plantilla. Verifica la URL.")
 
 from pptx import Presentation
 from pptx.util import Inches
