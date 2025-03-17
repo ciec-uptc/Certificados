@@ -94,7 +94,6 @@ from pptx import Presentation
 # URL pública del archivo PPTX en GitHub
 url_plantilla = "https://raw.githubusercontent.com/ciec-uptc/Certificados/main/Plantilla%20base.pptx"
 
-@st.cache_data
 def load_template():
     response = requests.get(url_plantilla)
     if response.status_code == 200:
@@ -105,5 +104,5 @@ def load_template():
         st.error("❌ No se pudo descargar la plantilla del certificado.")
         return None
 
-# Cargar la plantilla
+# Cargar la plantilla sin almacenamiento en caché
 plantilla_pptx = load_template()
