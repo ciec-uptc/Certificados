@@ -68,3 +68,23 @@ if st.button("Validar contraseña"):
             st.error("❌ Contraseña incorrecta o estudiante no registrado en este curso.")
     else:
         st.warning("⚠️ Por favor, ingrese su contraseña.")
+
+import qrcode
+from io import BytesIO
+
+# Obtener el enlace de validación para el curso seleccionado
+url_validacion = df_cursos[df_cursos["Código"] == codigo_curso]["validación"].values[0]
+
+if "http" in url_validacion:  # Verificar que sea un enlace válido
+    # Generar el código QR
+    qr = qrcode.make(url_validacion)
+    qr_img = BytesIO()
+    qr.save(qr_img, format="PNG")
+    qr_img.seek(0)
+
+    # Mostrar el código QR en Streamlit
+    st.subheader("Código QR de validación")
+    st.image(qr_img, caption="Escanéalo para verificar tu certificado", use_column_width=False)
+else:
+    st.warning("⚠️ Este curso no tiene un enlace de validación asignado.")
+
