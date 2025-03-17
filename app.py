@@ -21,3 +21,13 @@ df_cursos = load_data()
 # Mostrar los primeros registros para verificar
 st.subheader("Lista de cursos disponibles")
 st.dataframe(df_cursos)
+
+# Seleccionar el curso desde un selectbox
+curso_seleccionado = st.selectbox("📚 Seleccione un curso o diplomado", df_cursos["Nombre del Curso o Diplomado"].unique())
+
+# Obtener el código del curso seleccionado
+codigo_curso = df_cursos[df_cursos["Nombre del Curso o Diplomado"] == curso_seleccionado]["Código"].values[0]
+
+st.write(f"Has seleccionado el curso: **{curso_seleccionado}**")
+st.write(f"Código del curso: `{codigo_curso}`")
+
