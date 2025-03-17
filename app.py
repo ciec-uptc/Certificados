@@ -151,14 +151,19 @@ def generar_certificado(nombre, documento, curso, duracion, fecha, qr_img):
                 if shape.has_text_frame:
                     text = shape.text_frame.text
                     if "Nombres y Apellidos" in text:
+                        shape.text_frame.clear()  # Limpiar contenido previo
                         shape.text_frame.text = nombre
                     elif "Documento" in text:
+                        shape.text_frame.clear()
                         shape.text_frame.text = documento
                     elif "Título" in text:
+                        shape.text_frame.clear()
                         shape.text_frame.text = curso
                     elif "Dur" in text:
+                        shape.text_frame.clear()
                         shape.text_frame.text = duracion
                     elif "Fecha" in text:
+                        shape.text_frame.clear()
                         shape.text_frame.text = fecha
 
         # Insertar el código QR reemplazando "QR Aquí"
