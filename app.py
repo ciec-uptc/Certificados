@@ -148,23 +148,24 @@ def generar_certificado(nombre, documento, curso, duracion, fecha, qr_img):
         # Modificar los textos en la diapositiva
         for slide in prs.slides:
             for shape in slide.shapes:
-                if shape.has_text_frame:
-                    text = shape.text_frame.text
+                if shape.has_text_frame and shape.text_frame.text:  # Verifica que tenga texto
+                    text = shape.text_frame.text.strip()
+
                     if "Nombres y Apellidos" in text:
-                        shape.text_frame.clear()  # Limpiar contenido previo
-                        shape.text_frame.text = nombre
+                        shape.text_frame.clear()
+                        shape.text_frame.add_paragraph().text = nombre
                     elif "Documento" in text:
                         shape.text_frame.clear()
-                        shape.text_frame.text = documento
+                        shape.text_frame.add_paragraph().text = documento
                     elif "Título" in text:
                         shape.text_frame.clear()
-                        shape.text_frame.text = curso
+                        shape.text_frame.add_paragraph().text = curso
                     elif "Dur" in text:
                         shape.text_frame.clear()
-                        shape.text_frame.text = duracion
+                        shape.text_frame.add_paragraph().text = duracion
                     elif "Fecha" in text:
                         shape.text_frame.clear()
-                        shape.text_frame.text = fecha
+                        shape.text_frame.add_paragraph().text = fecha
 
         # Insertar el código QR reemplazando "QR Aquí"
         for slide in prs.slides:
