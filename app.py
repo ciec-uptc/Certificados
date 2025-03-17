@@ -106,3 +106,89 @@ def load_template():
 
 # Cargar la plantilla sin almacenamiento en caché
 plantilla_pptx = load_template()
+
+import requests
+from pptx import Presentation
+from pptx.util import Inches
+from io import BytesIO
+
+# URL de la plantilla base en GitHub (raw)
+url_plantilla = "https://github.com/ciec-uptc/Certificados/blob/main/Plantilla%20base.pptx?raw=true"
+
+# Descargar la plantilla base desde GitHub
+@st.cache_data
+def cargar_plantilla():
+    response = requests.get(url_plantilla)
+    if response.status_code == 200:
+        return BytesIO(response.content)
+    else:
+        st.error("❌ Error al cargar la plantilla de PowerPoint.")
+        return None
+
+plantilla_stream = cargar_plantilla()
+
+# Función para generar el certificado
+def generar_certificado(nombre, documento, curso, duracion, fecha, qr_img):
+    if plantilla_stream:
+        prs = Presentation(plantilla_stream)  # Cargar la plantilla en memoria
+
+        # Modificar los textos en la diapositiva
+        for slide in prs.slides:
+            for shape in slide.shapes:
+                if shape.has_text_frame:
+                    text = shape.text_frame.text
+                    if "Nombres y Apellidos" in text:
+                        shape.text_frame.text = nombre
+                    elif "Documento" in text:
+                        shape.text_frame.text = documento
+                    elif "Título" in text:
+                        shape.text_frame.text = curso
+                    elif "Dur" in text:
+                        shape.text_frame.text = duracion
+                    elif "Fecha" in text:
+                        shape.text_frame.text = fecha
+
+        # Insertar el código QR reemplazando "QR Aquí"
+        for slide in prs.slides:
+            for shape in slide.shapes:
+                if shape.has_text_frame and "QR Aquí" in shape.text_frame.text:
+                    left = shape.left
+                    top = shape.top
+                    slide.shapes._spTree.remove(shape._element)  # Eliminar el cuadro de texto original
+                    qr_stream = BytesIO()
+                    qr_img.save(qr_stream, format="PNG")
+                    qr_stream.seek(0)
+                    slide.shapes.add_picture(qr_stream, left, top, Inches(2), Inches(2))
+
+        # Guardar el certificado como un archivo en memoria
+        certificado_stream = BytesIO()
+        prs.save(certificado_stream)
+        certificado_stream.seek(0)
+        
+        return certificado_stream
+    else:
+        st.error("❌ No se pudo generar el certificado.")
+        return None
+
+# Botón para generar el certificado
+if st.button("🎓 Generar Certificado"):
+    if not estudiante.empty:
+        certificado = generar_certificado(
+            nombre_estudiante,
+            documento_estudiante,
+            curso_seleccionado,
+            df_cursos[df_cursos["Código"] == codigo_curso]["Duración"].values[0],
+            df_cursos[df_cursos["Código"] == codigo_curso]["Fecha"].values[0],
+            qr
+        )
+
+        if certificado:
+            st.success("✅ Certificado generado con éxito.")
+            st.download_button(
+                label="📥 Descargar Certificado",
+                data=certificado,
+                file_name=f"Certificado_{nombre_estudiante}.pptx",
+                mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
+            )
+    else:
+        st.error("⚠️ No se puede generar el certificado sin validación.")
