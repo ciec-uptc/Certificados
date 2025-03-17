@@ -201,47 +201,40 @@ def generar_certificado(nombre, documento, curso, duracion, fecha, qr_img):
         st.error("❌ No se pudo generar el certificado.")
         return None
 
-import subprocess
-import os
-
-def instalar_unoconv():
-    """Instala unoconv en el servidor si no está instalado."""
-    try:
-        subprocess.run(["apt-get", "install", "-y", "unoconv"], check=True)
-        st.success("✅ unoconv instalado correctamente.")
-    except Exception as e:
-        st.error(f"❌ Error instalando unoconv: {e}")
+import requests
 
 def pptx_a_pdf(certificado_pptx):
-    """Convierte un archivo PPTX a PDF usando unoconv."""
+    """Convierte un archivo PPTX a PDF usando la API de CloudConvert."""
     
-    temp_pptx = "certificado.pptx"
-    temp_pdf = "certificado.pdf"
+    API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiY2ZjZDIyZjRlYjE3MTFiZDEwODk5MDY4M2JjNjM5MDFlNTViMjU0ZTlmYmEyYzg3YWVkMDMzZDYwMGZkM2Y2OWJlZjg3MjczMmM5NTI4N2QiLCJpYXQiOjE3NDIwODc3MjYuNTQ1MTg3LCJuYmYiOjE3NDIwODc3MjYuNTQ1MTg5LCJleHAiOjQ4OTc3NjEzMjYuNTQwNTksInN1YiI6IjcxMzQ2NDY4Iiwic2NvcGVzIjpbInRhc2sucmVhZCIsInRhc2sud3JpdGUiXX0.mBzno6enxy7JHNpNm3Q5iP5lN4uqYrokU_avbVg0e0AIAtvqNK8oILKaBf9iLNZWtguqaY5sUfHTQe5-taduwn5JoNDqngUKOr6kPrk2F0cEnuGfHJGZ2Q8tKbgZ_cSbvbm-_ge1Mb1f0P0HZDIejq5alD-YTBn_hJ1aA8qe7jy35cGoE70FlU_dzZ8rh-kExU_RBb10hHYjVBWjOqlJPKlYCr89mrE_Sb2sybcYxebE5-bFHsds5BMPAiHr5mDBeUyQOyanwPgn1IocNQWNznmF4mWSuqXm6WftR-9WNjBpcVjSYENwpj8yLPwqNolJC1nteD4d_2PqTPmsZo6xSxL2_SPdziWY7EGpumAcNrEyYc2ijwDBFmQPGv3z8-7Gt5zpARwKbeg5f_C1nJtlhhpfgzoRMsX24WApJYngSYuoj9MjGEyjVwg-3VJFY1idhbXFAfYUUbxsstdvJc6j04aebAz6UbwBIoXXbuUOuO50D7MEox4QosIs6KVYPh3cVTzesbYBfQSqofqOxH0ogS6uxrN8578ihGIQUu2opITkUZTsi4Ff8AAwesGwdytX52BGGdSsBWHbftxuxwqQK3qnuVS3dm5aKBctn0Jw6uwis9W1hnCVfWCaiaZgypLndaKGwuFm2JcmL7AD0azH5w6zdjkXQZEUIlHJXB_ozIE"  # 🔹 Reemplázala con tu clave real
+    url_upload = "https://api.cloudconvert.com/v2/import/upload"
+    url_convert = "https://api.cloudconvert.com/v2/convert"
+    
+    headers = {"Authorization": f"Bearer {API_KEY}"}
 
-    # Guardar el archivo PPTX temporalmente
-    with open(temp_pptx, "wb") as f:
-        f.write(certificado_pptx.getbuffer())
+    # Subir el archivo PPTX a CloudConvert
+    files = {"file": certificado_pptx}
+    response_upload = requests.post(url_upload, headers=headers, files=files)
 
-    try:
-        # Verificar e instalar unoconv si es necesario
-        instalar_unoconv()
+    if response_upload.status_code == 200:
+        upload_data = response_upload.json()
+        file_id = upload_data["data"]["id"]
 
-        # Convertir a PDF usando unoconv
-        subprocess.run(["unoconv", "-f", "pdf", temp_pptx], check=True)
+        # Iniciar la conversión a PDF
+        data_convert = {
+            "input": file_id,
+            "output_format": "pdf"
+        }
 
-        # Leer el archivo PDF resultante
-        with open(temp_pdf, "rb") as pdf_file:
-            pdf_stream = BytesIO(pdf_file.read())
+        response_convert = requests.post(url_convert, headers=headers, json=data_convert)
 
-        # Limpiar archivos temporales
-        os.remove(temp_pptx)
-        os.remove(temp_pdf)
+        if response_convert.status_code == 200:
+            pdf_url = response_convert.json()["data"]["url"]
+            pdf_response = requests.get(pdf_url)
+            return BytesIO(pdf_response.content)
 
-        return pdf_stream
-
-    except Exception as e:
-        st.error(f"❌ Error en la conversión a PDF: {e}")
-        return None
+    st.error("❌ Error al convertir el archivo a PDF con CloudConvert.")
+    return None
         
 # Botón para generar el certificado
 if st.button("🎓 Generar Certificado en PDF"):
