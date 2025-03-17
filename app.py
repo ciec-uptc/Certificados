@@ -201,29 +201,6 @@ def generar_certificado(nombre, documento, curso, duracion, fecha, qr_img):
         st.error("❌ No se pudo generar el certificado.")
         return None
 
-# Botón para generar el certificado
-if st.button("🎓 Generar Certificado"):
-    if st.session_state.validado:
-        certificado = generar_certificado(
-            st.session_state.nombre_estudiante,
-            st.session_state.documento_estudiante,
-            curso_seleccionado,
-            df_cursos[df_cursos["Código"] == codigo_curso]["Duración"].values[0],
-            df_cursos[df_cursos["Código"] == codigo_curso]["Fecha"].values[0],
-            qr
-        )
-
-        if certificado:
-            st.success("✅ Certificado generado con éxito.")
-            st.download_button(
-                label="📥 Descargar Certificado",
-                data=certificado,
-                file_name=f"Certificado_{st.session_state.nombre_estudiante}.pptx",
-                mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
-            )
-    else:
-        st.error("⚠️ No se puede generar el certificado sin validación.")
-
 import comtypes.client  # Solo si se ejecuta en Windows
 import os
 
@@ -265,3 +242,31 @@ def pptx_a_pdf(certificado_stream):
     except Exception as e:
         st.error(f"Error en la conversión: {e}")
         return None
+        
+# Botón para generar el certificado
+if st.button("🎓 Generar Certificado en PDF"):
+    if st.session_state.validado:
+        certificado_pptx = generar_certificado(
+            st.session_state.nombre_estudiante,
+            st.session_state.documento_estudiante,
+            curso_seleccionado,
+            df_cursos[df_cursos["Código"] == codigo_curso]["Duración"].values[0],
+            df_cursos[df_cursos["Código"] == codigo_curso]["Fecha"].values[0],
+            qr
+        )
+
+        if certificado_pptx:
+            certificado_pdf = pptx_a_pdf(certificado_pptx)
+
+            if certificado_pdf:
+                st.success("✅ Certificado generado en PDF.")
+                st.download_button(
+                    label="📥 Descargar Certificado en PDF",
+                    data=certificado_pdf,
+                    file_name=f"Certificado_{st.session_state.nombre_estudiante}.pdf",
+                    mime="application/pdf"
+                )
+            else:
+                st.error("❌ No se pudo convertir el archivo a PDF.")
+    else:
+        st.error("⚠️ No se puede generar el certificado sin validación.")
