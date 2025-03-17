@@ -18,6 +18,8 @@ def load_data():
 
 df_cursos = load_data()
 
+st.write("Columnas disponibles en la hoja de cálculo:", df_cursos.columns.tolist())
+
 # Mostrar los primeros registros para verificar
 st.subheader("Lista de cursos disponibles")
 st.dataframe(df_cursos[["Código", "Nombre del Curso o Diplomado", "Cohorte", "Fecha", "Duración","Docente"]])
