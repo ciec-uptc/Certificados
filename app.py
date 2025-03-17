@@ -41,3 +41,25 @@ def load_students():
 
 df_estudiantes = load_students()
 
+# Campo de entrada para la contraseña del estudiante
+password_input = st.text_input("🔑 Ingrese su contraseña", type="password")
+
+# Filtrar la hoja de estudiantes por el código del curso seleccionado
+df_curso_estudiantes = df_estudiantes[df_estudiantes["Código"] == codigo_curso]
+
+# Botón para validar
+if st.button("Validar contraseña"):
+    if password_input:
+        # Buscar si la contraseña ingresada coincide con alguna en la hoja de cálculo
+        estudiante = df_curso_estudiantes[df_curso_estudiantes["Contraseña"] == password_input]
+
+        if not estudiante.empty:
+            nombre_estudiante = estudiante["Nombre"].values[0]
+            documento_estudiante = estudiante["Documento"].values[0]
+
+            st.success(f"✅ Acceso concedido: {nombre_estudiante}")
+            st.write(f"📄 Documento: `{documento_estudiante}`")
+        else:
+            st.error("❌ Contraseña incorrecta o estudiante no registrado en este curso.")
+    else:
+        st.warning("⚠️ Por favor, ingrese su contraseña.")
