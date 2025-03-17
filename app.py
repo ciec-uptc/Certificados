@@ -89,17 +89,21 @@ else:
     st.warning("⚠️ Este curso no tiene un enlace de validación asignado.")
 
 import requests
+from pptx import Presentation
 
-# URL del archivo en GitHub Raw
+# URL pública del archivo PPTX en GitHub
 url_plantilla = "https://raw.githubusercontent.com/ciec-uptc/Certificados/main/Plantilla%20base.pptx"
 
-# Descargar la plantilla
-st.subheader("Descargando plantilla de certificado...")
-response = requests.get(url_plantilla)
+@st.cache_data
+def load_template():
+    response = requests.get(url_plantilla)
+    if response.status_code == 200:
+        with open("Plantilla_base.pptx", "wb") as f:
+            f.write(response.content)
+        return Presentation("Plantilla_base.pptx")
+    else:
+        st.error("❌ No se pudo descargar la plantilla del certificado.")
+        return None
 
-if response.status_code == 200:
-    with open("plantilla_certificado.pptx", "wb") as f:
-        f.write(response.content)
-    st.success("✅ Plantilla descargada correctamente desde GitHub.")
-else:
-    st.error("❌ No se pudo descargar la plantilla. Verifica la URL.")
+# Cargar la plantilla
+plantilla_pptx = load_template()
