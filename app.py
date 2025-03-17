@@ -49,13 +49,20 @@ df_estudiantes = load_students()
 # Campo de entrada para la contraseña del estudiante
 password_input = st.text_input("🔑 Ingrese su contraseña", type="password")
 
+# Definir variables globales para que estén disponibles en toda la app
+estudiante = pd.DataFrame()
+nombre_estudiante = ""
+documento_estudiante = ""
+
+# Campo de entrada para la contraseña del estudiante
+password_input = st.text_input("🔑 Ingrese su contraseña", type="password")
+
 # Filtrar la hoja de estudiantes por el código del curso seleccionado
 df_curso_estudiantes = df_estudiantes[df_estudiantes["Código"] == codigo_curso]
 
 # Botón para validar
 if st.button("Validar contraseña"):
     if password_input:
-        # Buscar si la contraseña ingresada coincide con alguna en la hoja de cálculo
         estudiante = df_curso_estudiantes[df_curso_estudiantes["Contraseña"] == password_input]
 
         if not estudiante.empty:
