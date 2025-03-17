@@ -16,6 +16,8 @@ url = "https://docs.google.com/spreadsheets/d/1XSzJ_cZWr7co6c_86CCzfWNgEKwxB8Wn5
 def load_data():
     return pd.read_csv(url)
 
+st.write("Columnas disponibles en la hoja de cálculo:", df_cursos.columns.tolist())
+
 df_cursos = load_data()
 
 # Mostrar los primeros registros para verificar
