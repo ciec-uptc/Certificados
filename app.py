@@ -214,6 +214,8 @@ def pptx_a_pdf(certificado_pptx):
     # 🔹 Encabezados para la API
     headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
 
+    st.info("📤 Subiendo archivo a CloudConvert...")
+
     # 🔹 Paso 1: Crear una tarea de importación (subida de archivo)
     upload_task_response = requests.post("https://api.cloudconvert.com/v2/import/upload", headers=headers)
 
@@ -222,6 +224,7 @@ def pptx_a_pdf(certificado_pptx):
         return None
 
     upload_task = upload_task_response.json()
+    st.success("✅ Tarea de importación creada con éxito.")
 
     if "data" not in upload_task:
         st.error("❌ No se recibió 'data' en la respuesta de importación.")
@@ -233,15 +236,17 @@ def pptx_a_pdf(certificado_pptx):
 
     # 🔹 Paso 2: Subir el archivo PPTX a CloudConvert
     files = {"file": certificado_pptx.getvalue()}
+    st.info("📤 Subiendo archivo PPTX...")
     upload_response = requests.post(upload_url, data=parameters, files=files)
 
     if upload_response.status_code != 201:
         st.error(f"❌ Error al subir el archivo: {upload_response.text}")
         return None
     else:
-        st.success("✅ Archivo PPTX subido exitosamente")
+        st.success("✅ Archivo PPTX subido exitosamente.")
 
     # 🔹 Paso 3: Crear la tarea de conversión a PDF
+    st.info("🔄 Creando tarea de conversión en CloudConvert...")
     convert_task_response = requests.post(
         "https://api.cloudconvert.com/v2/jobs",
         headers=headers,
@@ -265,6 +270,7 @@ def pptx_a_pdf(certificado_pptx):
         return None
 
     convert_task = convert_task_response.json()
+    st.success("✅ Tarea de conversión creada con éxito.")
 
     if "data" not in convert_task:
         st.error("❌ No se recibió 'data' en la respuesta de conversión.")
@@ -273,18 +279,30 @@ def pptx_a_pdf(certificado_pptx):
     convert_task_id = convert_task["data"]["id"]
 
     # 🔹 Paso 4: Esperar la conversión
-    with st.spinner("⏳ Convirtiendo a PDF..."):
-        while True:
-            task_status = requests.get(f"https://api.cloudconvert.com/v2/jobs/{convert_task_id}", headers=headers).json()
-            if task_status["data"]["status"] == "finished":
-                st.success("✅ Conversión completada")
-                break
-            elif task_status["data"]["status"] == "failed":
-                st.error(f"❌ Error en la conversión: {task_status}")
-                return None
+    st.info("⏳ Convirtiendo a PDF...")
+
+    while True:
+        task_status_response = requests.get(f"https://api.cloudconvert.com/v2/jobs/{convert_task_id}", headers=headers)
+
+        if task_status_response.status_code != 200:
+            st.error(f"❌ Error al verificar el estado de la conversión: {task_status_response.text}")
+            return None
+
+        task_status = task_status_response.json()
+        estado = task_status["data"]["status"]
+
+        if estado == "finished":
+            st.success("✅ Conversión completada.")
+            break
+        elif estado == "failed":
+            st.error(f"❌ Error en la conversión: {task_status}")
+            return None
+        else:
+            st.info(f"⏳ Estado actual: {estado}... esperando...")
             time.sleep(5)
 
     # 🔹 Paso 5: Obtener el enlace de descarga del PDF
+    st.info("📥 Buscando enlace de descarga...")
     export_task = next((task for task in task_status["data"]["tasks"] if task["operation"] == "export/url"), None)
 
     if not export_task:
@@ -292,9 +310,12 @@ def pptx_a_pdf(certificado_pptx):
         return None
 
     file_url = export_task["result"]["files"][0]["url"]
+    st.success("✅ Enlace de descarga obtenido.")
+
     pdf_response = requests.get(file_url)
     
     if pdf_response.status_code == 200:
+        st.success("✅ Archivo PDF descargado correctamente.")
         return BytesIO(pdf_response.content)
     else:
         st.error("❌ Error al descargar el archivo PDF.")
