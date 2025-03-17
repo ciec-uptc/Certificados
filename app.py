@@ -202,39 +202,103 @@ def generar_certificado(nombre, documento, curso, duracion, fecha, qr_img):
         return None
 
 import requests
+import json
+import time
+
+# API Key de CloudConvert
+API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiY2ZjZDIyZjRlYjE3MTFiZDEwODk5MDY4M2JjNjM5MDFlNTViMjU0ZTlmYmEyYzg3YWVkMDMzZDYwMGZkM2Y2OWJlZjg3MjczMmM5NTI4N2QiLCJpYXQiOjE3NDIwODc3MjYuNTQ1MTg3LCJuYmYiOjE3NDIwODc3MjYuNTQ1MTg5LCJleHAiOjQ4OTc3NjEzMjYuNTQwNTksInN1YiI6IjcxMzQ2NDY4Iiwic2NvcGVzIjpbInRhc2sucmVhZCIsInRhc2sud3JpdGUiXX0.mBzno6enxy7JHNpNm3Q5iP5lN4uqYrokU_avbVg0e0AIAtvqNK8oILKaBf9iLNZWtguqaY5sUfHTQe5-taduwn5JoNDqngUKOr6kPrk2F0cEnuGfHJGZ2Q8tKbgZ_cSbvbm-_ge1Mb1f0P0HZDIejq5alD-YTBn_hJ1aA8qe7jy35cGoE70FlU_dzZ8rh-kExU_RBb10hHYjVBWjOqlJPKlYCr89mrE_Sb2sybcYxebE5-bFHsds5BMPAiHr5mDBeUyQOyanwPgn1IocNQWNznmF4mWSuqXm6WftR-9WNjBpcVjSYENwpj8yLPwqNolJC1nteD4d_2PqTPmsZo6xSxL2_SPdziWY7EGpumAcNrEyYc2ijwDBFmQPGv3z8-7Gt5zpARwKbeg5f_C1nJtlhhpfgzoRMsX24WApJYngSYuoj9MjGEyjVwg-3VJFY1idhbXFAfYUUbxsstdvJc6j04aebAz6UbwBIoXXbuUOuO50D7MEox4QosIs6KVYPh3cVTzesbYBfQSqofqOxH0ogS6uxrN8578ihGIQUu2opITkUZTsi4Ff8AAwesGwdytX52BGGdSsBWHbftxuxwqQK3qnuVS3dm5aKBctn0Jw6uwis9W1hnCVfWCaiaZgypLndaKGwuFm2JcmL7AD0azH5w6zdjkXQZEUIlHJXB_ozIE"
 
 def pptx_a_pdf(certificado_pptx):
-    """Convierte un archivo PPTX a PDF usando la API de CloudConvert."""
+    """Convierte un archivo PPTX a PDF usando CloudConvert API y devuelve el PDF en memoria."""
     
-    API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiY2ZjZDIyZjRlYjE3MTFiZDEwODk5MDY4M2JjNjM5MDFlNTViMjU0ZTlmYmEyYzg3YWVkMDMzZDYwMGZkM2Y2OWJlZjg3MjczMmM5NTI4N2QiLCJpYXQiOjE3NDIwODc3MjYuNTQ1MTg3LCJuYmYiOjE3NDIwODc3MjYuNTQ1MTg5LCJleHAiOjQ4OTc3NjEzMjYuNTQwNTksInN1YiI6IjcxMzQ2NDY4Iiwic2NvcGVzIjpbInRhc2sucmVhZCIsInRhc2sud3JpdGUiXX0.mBzno6enxy7JHNpNm3Q5iP5lN4uqYrokU_avbVg0e0AIAtvqNK8oILKaBf9iLNZWtguqaY5sUfHTQe5-taduwn5JoNDqngUKOr6kPrk2F0cEnuGfHJGZ2Q8tKbgZ_cSbvbm-_ge1Mb1f0P0HZDIejq5alD-YTBn_hJ1aA8qe7jy35cGoE70FlU_dzZ8rh-kExU_RBb10hHYjVBWjOqlJPKlYCr89mrE_Sb2sybcYxebE5-bFHsds5BMPAiHr5mDBeUyQOyanwPgn1IocNQWNznmF4mWSuqXm6WftR-9WNjBpcVjSYENwpj8yLPwqNolJC1nteD4d_2PqTPmsZo6xSxL2_SPdziWY7EGpumAcNrEyYc2ijwDBFmQPGv3z8-7Gt5zpARwKbeg5f_C1nJtlhhpfgzoRMsX24WApJYngSYuoj9MjGEyjVwg-3VJFY1idhbXFAfYUUbxsstdvJc6j04aebAz6UbwBIoXXbuUOuO50D7MEox4QosIs6KVYPh3cVTzesbYBfQSqofqOxH0ogS6uxrN8578ihGIQUu2opITkUZTsi4Ff8AAwesGwdytX52BGGdSsBWHbftxuxwqQK3qnuVS3dm5aKBctn0Jw6uwis9W1hnCVfWCaiaZgypLndaKGwuFm2JcmL7AD0azH5w6zdjkXQZEUIlHJXB_ozIE"  # 🔹 Reemplázala con tu clave real
-    url_upload = "https://api.cloudconvert.com/v2/import/upload"
-    url_convert = "https://api.cloudconvert.com/v2/convert"
+    # 🔹 Encabezados para la API
+    headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
+
+    # 🔹 Paso 1: Crear una tarea de importación (subida de archivo)
+    upload_task_response = requests.post("https://api.cloudconvert.com/v2/import/upload", headers=headers)
+
+    if upload_task_response.status_code != 201:
+        st.error(f"❌ Error al crear la tarea de importación: {upload_task_response.text}")
+        return None
+
+    upload_task = upload_task_response.json()
+
+    if "data" not in upload_task:
+        st.error("❌ No se recibió 'data' en la respuesta de importación.")
+        return None
+
+    upload_url = upload_task["data"]["result"]["form"]["url"]
+    parameters = upload_task["data"]["result"]["form"]["parameters"]
+    import_task_id = upload_task["data"]["id"]
+
+    # 🔹 Paso 2: Subir el archivo PPTX a CloudConvert
+    files = {"file": certificado_pptx.getvalue()}
+    upload_response = requests.post(upload_url, data=parameters, files=files)
+
+    if upload_response.status_code != 201:
+        st.error(f"❌ Error al subir el archivo: {upload_response.text}")
+        return None
+    else:
+        st.success("✅ Archivo PPTX subido exitosamente")
+
+    # 🔹 Paso 3: Crear la tarea de conversión a PDF
+    convert_task_response = requests.post(
+        "https://api.cloudconvert.com/v2/jobs",
+        headers=headers,
+        data=json.dumps({
+            "tasks": {
+                "convert": {
+                    "operation": "convert",
+                    "input": import_task_id,
+                    "output_format": "pdf"
+                },
+                "export": {
+                    "operation": "export/url",
+                    "input": "convert"
+                }
+            }
+        })
+    )
+
+    if convert_task_response.status_code != 201:
+        st.error(f"❌ Error al crear la tarea de conversión: {convert_task_response.text}")
+        return None
+
+    convert_task = convert_task_response.json()
+
+    if "data" not in convert_task:
+        st.error("❌ No se recibió 'data' en la respuesta de conversión.")
+        return None
+
+    convert_task_id = convert_task["data"]["id"]
+
+    # 🔹 Paso 4: Esperar la conversión
+    with st.spinner("⏳ Convirtiendo a PDF..."):
+        while True:
+            task_status = requests.get(f"https://api.cloudconvert.com/v2/jobs/{convert_task_id}", headers=headers).json()
+            if task_status["data"]["status"] == "finished":
+                st.success("✅ Conversión completada")
+                break
+            elif task_status["data"]["status"] == "failed":
+                st.error(f"❌ Error en la conversión: {task_status}")
+                return None
+            time.sleep(5)
+
+    # 🔹 Paso 5: Obtener el enlace de descarga del PDF
+    export_task = next((task for task in task_status["data"]["tasks"] if task["operation"] == "export/url"), None)
+
+    if not export_task:
+        st.error("❌ No se encontró la tarea de exportación.")
+        return None
+
+    file_url = export_task["result"]["files"][0]["url"]
+    pdf_response = requests.get(file_url)
     
-    headers = {"Authorization": f"Bearer {API_KEY}"}
-
-    # Subir el archivo PPTX a CloudConvert
-    files = {"file": certificado_pptx}
-    response_upload = requests.post(url_upload, headers=headers, files=files)
-
-    if response_upload.status_code == 200:
-        upload_data = response_upload.json()
-        file_id = upload_data["data"]["id"]
-
-        # Iniciar la conversión a PDF
-        data_convert = {
-            "input": file_id,
-            "output_format": "pdf"
-        }
-
-        response_convert = requests.post(url_convert, headers=headers, json=data_convert)
-
-        if response_convert.status_code == 200:
-            pdf_url = response_convert.json()["data"]["url"]
-            pdf_response = requests.get(pdf_url)
-            return BytesIO(pdf_response.content)
-
-    st.error("❌ Error al convertir el archivo a PDF con CloudConvert.")
-    return None
+    if pdf_response.status_code == 200:
+        return BytesIO(pdf_response.content)
+    else:
+        st.error("❌ Error al descargar el archivo PDF.")
+        return None
         
 # Botón para generar el certificado
 if st.button("🎓 Generar Certificado en PDF"):
