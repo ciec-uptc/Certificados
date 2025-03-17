@@ -46,9 +46,6 @@ def load_students():
 
 df_estudiantes = load_students()
 
-# Campo de entrada para la contraseña del estudiante
-password_input = st.text_input("🔑 Ingrese su contraseña", type="password")
-
 # Definir variables globales para que estén disponibles en toda la app
 estudiante = pd.DataFrame()
 nombre_estudiante = ""
