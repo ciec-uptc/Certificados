@@ -51,6 +51,12 @@ estudiante = pd.DataFrame()
 nombre_estudiante = ""
 documento_estudiante = ""
 
+# Inicializar valores en session_state si no existen
+if "nombre_estudiante" not in st.session_state:
+    st.session_state.nombre_estudiante = ""
+    st.session_state.documento_estudiante = ""
+    st.session_state.validado = False
+
 # Campo de entrada para la contraseña del estudiante
 password_input = st.text_input("🔑 Ingrese su contraseña", type="password")
 
@@ -63,12 +69,15 @@ if st.button("Validar contraseña"):
         estudiante = df_curso_estudiantes[df_curso_estudiantes["Contraseña"] == password_input]
 
         if not estudiante.empty:
-            nombre_estudiante = estudiante["Nombre"].values[0]
-            documento_estudiante = estudiante["Documento"].values[0]
+            # Guardar los datos en session_state para que se conserven entre interacciones
+            st.session_state.nombre_estudiante = estudiante["Nombre"].values[0]
+            st.session_state.documento_estudiante = estudiante["Documento"].values[0]
+            st.session_state.validado = True
 
-            st.success(f"✅ Acceso concedido: {nombre_estudiante}")
-            st.write(f"📄 Documento: `{documento_estudiante}`")
+            st.success(f"✅ Acceso concedido: {st.session_state.nombre_estudiante}")
+            st.write(f"📄 Documento: `{st.session_state.documento_estudiante}`")
         else:
+            st.session_state.validado = False
             st.error("❌ Contraseña incorrecta o estudiante no registrado en este curso.")
     else:
         st.warning("⚠️ Por favor, ingrese su contraseña.")
@@ -175,11 +184,12 @@ def generar_certificado(nombre, documento, curso, duracion, fecha, qr_img):
         return None
 
 # Botón para generar el certificado
+# Botón para generar el certificado
 if st.button("🎓 Generar Certificado"):
-    if not estudiante.empty:
+    if st.session_state.validado:
         certificado = generar_certificado(
-            nombre_estudiante,
-            documento_estudiante,
+            st.session_state.nombre_estudiante,
+            st.session_state.documento_estudiante,
             curso_seleccionado,
             df_cursos[df_cursos["Código"] == codigo_curso]["Duración"].values[0],
             df_cursos[df_cursos["Código"] == codigo_curso]["Fecha"].values[0],
@@ -191,7 +201,7 @@ if st.button("🎓 Generar Certificado"):
             st.download_button(
                 label="📥 Descargar Certificado",
                 data=certificado,
-                file_name=f"Certificado_{nombre_estudiante}.pptx",
+                file_name=f"Certificado_{st.session_state.nombre_estudiante}.pptx",
                 mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
             )
     else:
