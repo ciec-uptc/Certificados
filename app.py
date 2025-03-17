@@ -173,26 +173,23 @@ def generar_certificado(nombre, documento, curso, duracion, fecha, qr_img):
                             elif "Fecha" in text:
                                 run.text = fecha
 
-        # Insertar el código QR reemplazando "QR Aquí"
+        # Insertar el código QR reemplazando el cuadro de texto "QR AQUÍ"
         for slide in prs.slides:
-            qr_eliminado = False
             for shape in slide.shapes:
-                if shape.has_text_frame and "QR Aquí" in shape.text_frame.text:
+                if shape.has_text_frame and "QR AQUÍ" in shape.text_frame.text:
                     left, top, width, height = shape.left, shape.top, shape.width, shape.height
-                    
-                    # Si el cuadro tiene borde punteado, se elimina
-                    if shape.line and shape.line.dash_style: 
-                        slide.shapes._spTree.remove(shape._element)
-                        qr_eliminado = True
+
+                    # Eliminar el cuadro de texto original
+                    slide.shapes._spTree.remove(shape._element)
 
                     # Guardar el QR como imagen
                     qr_stream = BytesIO()
                     qr_img.save(qr_stream, format="PNG")
                     qr_stream.seek(0)
 
-                    # Insertar el QR solo si se eliminó el cuadro
-                    if qr_eliminado:
-                        slide.shapes.add_picture(qr_stream, left, top, width, height)
+                    # Insertar el QR en la misma posición
+                    slide.shapes.add_picture(qr_stream, left, top, width, height)
+                    break  # Detener la búsqueda después de insertar el QR
 
         # Guardar el certificado como un archivo en memoria
         certificado_stream = BytesIO()
