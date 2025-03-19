@@ -225,15 +225,23 @@ if st.session_state.validado:
             )
 
 import streamlit as st
-import io
+import base64
+import urllib.parse
 
-# Enlaces a conversores online gratuitos
-CONVERSORES_ONLINE = [
-    ("CloudConvert (gratis con limitaciones)", "https://cloudconvert.com/pptx-to-png"),
-    ("Zamzar", "https://www.zamzar.com/convert/pptx-to-png/"),
-    ("Online2PDF", "https://www.online2pdf.com/convert-pptx-to-png"),
-    ("Convertio", "https://convertio.co/es/pptx-png/")
-]
+# URL del conversor online (puede cambiar según el servicio)
+CONVERSOR_URL = "https://www.zamzar.com/convert/pptx-to-png/"
+
+def generar_link_conversion(pptx_data, nombre_archivo):
+    """Genera un link para subir automáticamente el archivo a Zamzar."""
+    
+    # Convertir archivo a base64 para pasarlo en la URL (solo en algunos servicios)
+    pptx_base64 = base64.b64encode(pptx_data.getvalue()).decode()
+    
+    # Generar URL con el archivo adjunto (si el servicio lo permite)
+    params = urllib.parse.urlencode({"file": pptx_base64, "filename": nombre_archivo})
+    conversion_url = f"{CONVERSOR_URL}?{params}"
+
+    return conversion_url
 
 # Generar el certificado en PPTX
 if st.session_state.validado:
@@ -257,8 +265,9 @@ if st.session_state.validado:
             mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
         )
 
-        # Mostrar enlaces a conversores online
-        st.markdown("### 📤 **Convierte tu PPTX a Imagen Online**")
-        for nombre, url in CONVERSORES_ONLINE:
-            st.markdown(f"[🔗 {nombre}]({url})")
+        # Generar link de conversión automática
+        conversion_url = generar_link_conversion(certificado_stream, "certificado.pptx")
+
+        # Botón para convertir a PNG automáticamente
+        st.markdown(f"[🔄 Convertir a PNG automáticamente]({conversion_url})", unsafe_allow_html=True)
 
