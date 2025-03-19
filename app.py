@@ -221,13 +221,20 @@ from pptx import Presentation
 from PIL import Image
 
 def convertir_a_jpg(certificado_pptx):
-    """Convierte el PPTX generado a una imagen JPG de alta calidad procesándolo en memoria."""
+    """Convierte el PPTX generado a una imagen JPG asegurando que el archivo sea válido."""
 
     st.info("⏳ Generando la imagen del certificado...")
 
     try:
-        # 🔹 Cargar la presentación directamente desde memoria
-        prs = Presentation(BytesIO(certificado_pptx.getbuffer()))
+        # 🔹 Guardar el PPTX en memoria y verificar que es válido
+        pptx_stream = BytesIO(certificado_pptx.getbuffer())
+        pptx_stream.seek(0)  # Asegurar que estamos en el inicio del archivo
+
+        # 🔹 Intentar abrir el archivo PPTX
+        try:
+            prs = Presentation(pptx_stream)
+        except Exception as e:
+            raise ValueError(f"❌ Error al leer el archivo PPTX: {e}")
 
         # 🔹 Verificar si el PPTX tiene diapositivas
         if not prs.slides:
