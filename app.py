@@ -228,17 +228,15 @@ def convertir_a_jpg(certificado_pptx):
     st.info("⏳ Generando la imagen del certificado...")
 
     try:
-        # 🔹 Guardar el PPTX en un archivo temporal y cerrarlo para asegurar que se escribe correctamente
-        temp_pptx_path = None
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pptx") as temp_pptx:
+        # 🔹 Guardar el PPTX en un archivo real antes de procesarlo
+        temp_pptx_path = os.path.join(tempfile.gettempdir(), "certificado.pptx")
+        with open(temp_pptx_path, "wb") as temp_pptx:
             temp_pptx.write(certificado_pptx.getbuffer())
-            temp_pptx_path = temp_pptx.name
 
-        # 🔹 Esperar un poco para asegurarse de que el archivo se ha guardado completamente
-        time.sleep(1)
+        # 🔹 Verificar que el archivo se guardó correctamente antes de abrirlo
+        time.sleep(1)  # Esperar un momento para asegurarnos de que se guardó completamente
 
-        # 🔹 Doble verificación de que el archivo realmente existe antes de usarlo
-        if temp_pptx_path is None or not os.path.exists(temp_pptx_path):
+        if not os.path.exists(temp_pptx_path):
             raise FileNotFoundError(f"No se encontró el archivo PPTX en {temp_pptx_path}")
 
         # 🔹 Cargar la presentación
@@ -273,7 +271,7 @@ def convertir_a_jpg(certificado_pptx):
 
     finally:
         # 🔹 Eliminar archivos temporales si existen
-        if temp_pptx_path and os.path.exists(temp_pptx_path):
+        if os.path.exists(temp_pptx_path):
             os.remove(temp_pptx_path)
         if os.path.exists(temp_img_path):
             os.remove(temp_img_path)
