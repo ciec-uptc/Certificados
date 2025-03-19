@@ -3,3 +3,4 @@ python-pptx
 reportlab
 pdf2image
 poppler-utils
+pptx2pdf
