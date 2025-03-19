@@ -202,126 +202,59 @@ def generar_certificado(nombre, documento, curso, duracion, fecha, qr_img):
         return None
 
 import requests
-import json
-import time
+import os
+import streamlit as st
+from io import BytesIO
 
-# API Key de CloudConvert
-API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiY2ZjZDIyZjRlYjE3MTFiZDEwODk5MDY4M2JjNjM5MDFlNTViMjU0ZTlmYmEyYzg3YWVkMDMzZDYwMGZkM2Y2OWJlZjg3MjczMmM5NTI4N2QiLCJpYXQiOjE3NDIwODc3MjYuNTQ1MTg3LCJuYmYiOjE3NDIwODc3MjYuNTQ1MTg5LCJleHAiOjQ4OTc3NjEzMjYuNTQwNTksInN1YiI6IjcxMzQ2NDY4Iiwic2NvcGVzIjpbInRhc2sucmVhZCIsInRhc2sud3JpdGUiXX0.mBzno6enxy7JHNpNm3Q5iP5lN4uqYrokU_avbVg0e0AIAtvqNK8oILKaBf9iLNZWtguqaY5sUfHTQe5-taduwn5JoNDqngUKOr6kPrk2F0cEnuGfHJGZ2Q8tKbgZ_cSbvbm-_ge1Mb1f0P0HZDIejq5alD-YTBn_hJ1aA8qe7jy35cGoE70FlU_dzZ8rh-kExU_RBb10hHYjVBWjOqlJPKlYCr89mrE_Sb2sybcYxebE5-bFHsds5BMPAiHr5mDBeUyQOyanwPgn1IocNQWNznmF4mWSuqXm6WftR-9WNjBpcVjSYENwpj8yLPwqNolJC1nteD4d_2PqTPmsZo6xSxL2_SPdziWY7EGpumAcNrEyYc2ijwDBFmQPGv3z8-7Gt5zpARwKbeg5f_C1nJtlhhpfgzoRMsX24WApJYngSYuoj9MjGEyjVwg-3VJFY1idhbXFAfYUUbxsstdvJc6j04aebAz6UbwBIoXXbuUOuO50D7MEox4QosIs6KVYPh3cVTzesbYBfQSqofqOxH0ogS6uxrN8578ihGIQUu2opITkUZTsi4Ff8AAwesGwdytX52BGGdSsBWHbftxuxwqQK3qnuVS3dm5aKBctn0Jw6uwis9W1hnCVfWCaiaZgypLndaKGwuFm2JcmL7AD0azH5w6zdjkXQZEUIlHJXB_ozIE"
+# 🔹 Función para convertir PPTX a PDF usando un servicio online
+def pptx_a_pdf_online(certificado_pptx):
+    """Convierte un archivo PPTX a PDF usando un servicio gratuito online y devuelve el PDF en memoria."""
 
-def pptx_a_pdf(certificado_pptx):
-    """Convierte un archivo PPTX a PDF usando CloudConvert API y devuelve el PDF en memoria."""
-    
-    # 🔹 Encabezados para la API
-    headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
+    # 🔹 URL de un conversor gratuito (ejemplo: ILovePDF o SmallPDF)
+    CONVERTER_URL = "https://www.ilovepdf.com/powerpoint_to_pdf"  # 🔹 Debe actualizarse con la API si es necesario
 
-    st.info("📤 Subiendo archivo a CloudConvert...")
+    # 🔹 Guardar temporalmente el PPTX en el servidor
+    temp_pptx = "certificado_temp.pptx"
+    temp_pdf = "certificado_temp.pdf"
 
-    # 🔹 Paso 1: Crear una tarea de importación (subida de archivo)
-    upload_task_response = requests.post("https://api.cloudconvert.com/v2/import/upload", headers=headers)
+    with open(temp_pptx, "wb") as f:
+        f.write(certificado_pptx.getbuffer())
 
-    if upload_task_response.status_code != 201:
-        st.error(f"❌ Error al crear la tarea de importación: {upload_task_response.text}")
-        return None
+    try:
+        st.info("⏳ Subiendo archivo y procesando conversión en segundo plano...")
 
-    upload_task = upload_task_response.json()
-    st.success("✅ Tarea de importación creada con éxito.")
+        # 🔹 Enviar el archivo al conversor
+        with open(temp_pptx, "rb") as file:
+            files = {"file": file}
+            response = requests.post(CONVERTER_URL, files=files)
 
-    if "data" not in upload_task:
-        st.error("❌ No se recibió 'data' en la respuesta de importación.")
-        return None
+        if response.status_code == 200:
+            # 🔹 Descargar el PDF convertido
+            with open(temp_pdf, "wb") as pdf_file:
+                pdf_file.write(response.content)
 
-    upload_url = upload_task["data"]["result"]["form"]["url"]
-    parameters = upload_task["data"]["result"]["form"]["parameters"]
-    import_task_id = upload_task["data"]["id"]
+            st.success("✅ Conversión completada. Descarga tu certificado en PDF.")
 
-    # 🔹 Paso 2: Subir el archivo PPTX a CloudConvert
-    files = {"file": certificado_pptx.getvalue()}
-    st.info("📤 Subiendo archivo PPTX...")
-    upload_response = requests.post(upload_url, data=parameters, files=files)
+            # 🔹 Leer el PDF para permitir la descarga
+            with open(temp_pdf, "rb") as pdf_file:
+                pdf_stream = BytesIO(pdf_file.read())
 
-    if upload_response.status_code != 201:
-        st.error(f"❌ Error al subir el archivo: {upload_response.text}")
-        return None
-    else:
-        st.success("✅ Archivo PPTX subido exitosamente.")
+            # 🔹 Eliminar los archivos temporales
+            os.remove(temp_pptx)
+            os.remove(temp_pdf)
 
-    # 🔹 Paso 3: Crear la tarea de conversión a PDF
-    st.info("🔄 Creando tarea de conversión en CloudConvert...")
-    convert_task_response = requests.post(
-        "https://api.cloudconvert.com/v2/jobs",
-        headers=headers,
-        data=json.dumps({
-            "tasks": {
-                "convert": {
-                    "operation": "convert",
-                    "input": import_task_id,
-                    "output_format": "pdf"
-                },
-                "export": {
-                    "operation": "export/url",
-                    "input": "convert"
-                }
-            }
-        })
-    )
+            return pdf_stream
 
-    if convert_task_response.status_code != 201:
-        st.error(f"❌ Error al crear la tarea de conversión: {convert_task_response.text}")
-        return None
-
-    convert_task = convert_task_response.json()
-    st.success("✅ Tarea de conversión creada con éxito.")
-
-    if "data" not in convert_task:
-        st.error("❌ No se recibió 'data' en la respuesta de conversión.")
-        return None
-
-    convert_task_id = convert_task["data"]["id"]
-
-    # 🔹 Paso 4: Esperar la conversión
-    st.info("⏳ Convirtiendo a PDF...")
-
-    while True:
-        task_status_response = requests.get(f"https://api.cloudconvert.com/v2/jobs/{convert_task_id}", headers=headers)
-
-        if task_status_response.status_code != 200:
-            st.error(f"❌ Error al verificar el estado de la conversión: {task_status_response.text}")
-            return None
-
-        task_status = task_status_response.json()
-        estado = task_status["data"]["status"]
-
-        if estado == "finished":
-            st.success("✅ Conversión completada.")
-            break
-        elif estado == "failed":
-            st.error(f"❌ Error en la conversión: {task_status}")
-            return None
         else:
-            st.info(f"⏳ Estado actual: {estado}... esperando...")
-            time.sleep(5)
+            st.error("❌ Error en la conversión a PDF.")
+            return None
 
-    # 🔹 Paso 5: Obtener el enlace de descarga del PDF
-    st.info("📥 Buscando enlace de descarga...")
-    export_task = next((task for task in task_status["data"]["tasks"] if task["operation"] == "export/url"), None)
-
-    if not export_task:
-        st.error("❌ No se encontró la tarea de exportación.")
+    except Exception as e:
+        st.error(f"❌ Error al procesar el PDF: {e}")
         return None
 
-    file_url = export_task["result"]["files"][0]["url"]
-    st.success("✅ Enlace de descarga obtenido.")
 
-    pdf_response = requests.get(file_url)
-    
-    if pdf_response.status_code == 200:
-        st.success("✅ Archivo PDF descargado correctamente.")
-        return BytesIO(pdf_response.content)
-    else:
-        st.error("❌ Error al descargar el archivo PDF.")
-        return None
-        
-# Botón para generar el certificado
+# 🔹 Botón para generar el certificado en PDF
 if st.button("🎓 Generar Certificado en PDF"):
     if st.session_state.validado:
         certificado_pptx = generar_certificado(
@@ -334,7 +267,7 @@ if st.button("🎓 Generar Certificado en PDF"):
         )
 
         if certificado_pptx:
-            certificado_pdf = pptx_a_pdf(certificado_pptx)
+            certificado_pdf = pptx_a_pdf_online(certificado_pptx)
 
             if certificado_pdf:
                 st.success("✅ Certificado generado en PDF.")
@@ -344,6 +277,11 @@ if st.button("🎓 Generar Certificado en PDF"):
                     file_name=f"Certificado_{st.session_state.nombre_estudiante}.pdf",
                     mime="application/pdf"
                 )
+            else:
+                st.error("❌ No se pudo convertir el archivo a PDF.")
+    else:
+        st.error("⚠️ No se puede generar el certificado sin validación.")
+
             else:
                 st.error("❌ No se pudo convertir el archivo a PDF.")
     else:
