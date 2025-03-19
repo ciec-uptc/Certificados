@@ -220,21 +220,29 @@ from io import BytesIO
 from pptx import Presentation
 from PIL import Image
 import tempfile
+import time
 
 def convertir_a_jpg(certificado_pptx):
-    """Convierte el PPTX generado a una imagen JPG de alta calidad asegurando que el archivo sea válido."""
+    """Convierte el PPTX generado a una imagen JPG de alta calidad asegurando que el archivo se guarde correctamente."""
 
     st.info("⏳ Generando la imagen del certificado...")
 
     try:
-        # 🔹 Guardar el PPTX en un archivo temporal en disco
+        # 🔹 Guardar el PPTX en un archivo temporal
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pptx") as temp_pptx:
             temp_pptx.write(certificado_pptx.getbuffer())
+            temp_pptx.flush()  # 🔹 Asegurar que los datos se escriban en disco
             temp_pptx_path = temp_pptx.name
 
-        # 🔹 Asegurar que el archivo existe antes de abrirlo
+        # 🔹 Esperar un poco para asegurarse de que el sistema ha guardado el archivo
+        time.sleep(1)
+
+        # 🔹 Verificar si el archivo realmente existe antes de abrirlo
         if not os.path.exists(temp_pptx_path):
-            raise FileNotFoundError(f"❌ No se encontró el archivo PPTX en {temp_pptx_path}")
+            st.error(f"❌ ERROR: No se encontró el archivo PPTX en {temp_pptx_path}")
+            return None
+
+        st.success(f"✅ Archivo PPTX guardado correctamente en: {temp_pptx_path}")
 
         # 🔹 Cargar la presentación desde el archivo en disco
         prs = Presentation(temp_pptx_path)
@@ -243,7 +251,7 @@ def convertir_a_jpg(certificado_pptx):
         if not prs.slides:
             raise ValueError("❌ El archivo PPTX no tiene diapositivas.")
 
-        slide = prs.slides[0]  # Obtener la primera diapositiva
+        slide = prs.slides[0]
 
         # 🔹 Crear una imagen en blanco con el tamaño de la diapositiva
         temp_img_path = temp_pptx_path.replace(".pptx", ".jpg")
@@ -252,7 +260,8 @@ def convertir_a_jpg(certificado_pptx):
 
         # 🔹 Verificar que la imagen se generó correctamente
         if not os.path.exists(temp_img_path):
-            raise FileNotFoundError(f"❌ No se pudo generar la imagen en {temp_img_path}")
+            st.error(f"❌ ERROR: No se pudo generar la imagen en {temp_img_path}")
+            return None
 
         # 🔹 Leer la imagen en memoria
         with open(temp_img_path, "rb") as img_file:
