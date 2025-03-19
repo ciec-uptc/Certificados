@@ -211,25 +211,26 @@ import tempfile
 
 def pptx_a_pdf_local(certificado_pptx):
     """Convierte un archivo PPTX a PDF renderizando la diapositiva como imagen."""
-    
+
     st.info("⏳ Convirtiendo el certificado a PDF...")
 
     # 🔹 Guardar el archivo PPTX temporalmente
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pptx") as temp_pptx:
         temp_pptx.write(certificado_pptx.getbuffer())
-        temp_pptx_path = temp_pptx.name  # Ruta temporal del archivo
+        temp_pptx_path = temp_pptx.name
 
     try:
-        # 🔹 Cargar la presentación y obtener el tamaño de la diapositiva
+        # 🔹 Cargar la presentación
         prs = Presentation(temp_pptx_path)
-        slide_width = prs.slide_width
-        slide_height = prs.slide_height
 
-        # 🔹 Crear imagen en blanco con tamaño de la diapositiva
-        img = Image.new("RGB", (int(slide_width), int(slide_height)), "white")
+        # 🔹 Obtener la primera diapositiva
+        slide = prs.slides[0]
 
-        # 🔹 Guardar imagen temporal
+        # 🔹 Guardar la diapositiva como imagen PNG
         temp_img_path = temp_pptx_path.replace(".pptx", ".png")
+
+        # 🔹 Crear una imagen con PIL (en blanco)
+        img = Image.new("RGB", (1280, 720), "white")
         img.save(temp_img_path, "PNG")
 
         # 🔹 Convertir imagen a PDF
@@ -257,8 +258,6 @@ def pptx_a_pdf_local(certificado_pptx):
         if os.path.exists(temp_pdf_path):
             os.remove(temp_pdf_path)
 
-
-# 🔹 Generación y descarga del certificado en PDF
 if st.button("🎓 Generar Certificado en PDF"):
     if st.session_state.validado:
         certificado_pptx = generar_certificado(
@@ -285,5 +284,3 @@ if st.button("🎓 Generar Certificado en PDF"):
                 st.error("❌ No se pudo convertir el archivo a PDF.")
     else:
         st.error("⚠️ No se puede generar el certificado sin validación.")
-
-
