@@ -1,5 +1,5 @@
-qrcode[pil]
-python-pptx
-img2pdf
-pillow
 streamlit
+pillow
+img2pdf
+python-pptx
+qrcode[pil]
