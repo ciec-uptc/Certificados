@@ -224,3 +224,54 @@ if st.session_state.validado:
                 mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
             )
 
+import streamlit as st
+import os
+from pptx import Presentation
+import io
+
+def convertir_pptx_a_pdf(certificado_stream):
+    """Convierte el PPTX a un archivo PDF de solo lectura."""
+
+    # Guardar el archivo PPTX temporalmente
+    pptx_path = "certificado_temporal.pptx"
+    with open(pptx_path, "wb") as f:
+        f.write(certificado_stream.getbuffer())
+
+    # Convertir PPTX a PDF usando LibreOffice (asegúrate de tener LibreOffice instalado)
+    pdf_path = "certificado_temporal.pdf"
+    os.system(f"libreoffice --headless --convert-to pdf {pptx_path} --outdir ./")
+
+    # Leer el PDF generado en memoria
+    if os.path.exists(pdf_path):
+        with open(pdf_path, "rb") as pdf_file:
+            pdf_bytes = pdf_file.read()
+        return io.BytesIO(pdf_bytes)
+    return None
+
+# Generar el certificado en PPTX
+if st.session_state.validado:
+    certificado_stream = generar_certificado(
+        st.session_state.nombre_estudiante,
+        st.session_state.documento_estudiante,
+        curso_seleccionado,
+        df_cursos[df_cursos["Código"] == codigo_curso]["Duración"].values[0],
+        df_cursos[df_cursos["Código"] == codigo_curso]["Fecha"].values[0],
+        qr
+    )
+
+    if certificado_stream:
+        st.success("✅ Certificado generado con éxito.")
+
+        # Convertir PPTX a PDF de solo lectura
+        certificado_pdf = convertir_pptx_a_pdf(certificado_stream)
+
+        if certificado_pdf:
+            # Botón de descarga para el archivo PDF de solo lectura
+            st.download_button(
+                label="⬇️ Descargar Certificado en PDF (Solo Lectura)",
+                data=certificado_pdf,
+                file_name=f"Certificado_{st.session_state.nombre_estudiante}.pdf",
+                mime="application/pdf"
+            )
+        else:
+            st.error("❌ No se pudo convertir el PPTX a PDF.")
