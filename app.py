@@ -224,24 +224,24 @@ if st.session_state.validado:
                 mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
             )
 
+import streamlit as st
 from pptx import Presentation
-from pptx.util import Inches
 from PIL import Image, ImageDraw, ImageFont
 import io
 
 def convertir_pptx_a_imagen(certificado_stream):
-    """Convierte la diapositiva PPTX en una imagen PNG con alta calidad."""
+    """Convierte la diapositiva PPTX en una imagen PNG de alta calidad sin perder diseño."""
     
-    # Guardar el archivo temporalmente
+    # Guardar el PPTX temporalmente
     pptx_path = "certificado_temporal.pptx"
     with open(pptx_path, "wb") as f:
         f.write(certificado_stream.getbuffer())
 
     # Abrir la presentación
     prs = Presentation(pptx_path)
-    slide = prs.slides[0]  # Primera (y única) diapositiva
+    slide = prs.slides[0]  # Primera y única diapositiva
 
-    # Dimensiones en píxeles (PPTX usa puntos de 1/72 pulgadas, Pillow usa píxeles)
+    # Dimensiones en píxeles (PowerPoint usa puntos de 1/72 pulgadas)
     width_px = int(prs.slide_width.inches * 96)
     height_px = int(prs.slide_height.inches * 96)
 
@@ -249,18 +249,18 @@ def convertir_pptx_a_imagen(certificado_stream):
     img = Image.new("RGB", (width_px, height_px), "white")
     draw = ImageDraw.Draw(img)
 
-    # Dibujar todos los textos en la imagen
+    # Extraer imágenes y textos de la diapositiva
     for shape in slide.shapes:
+        if shape.shape_type == 13:  # Es una imagen
+            img_stream = io.BytesIO(shape.image.blob)
+            image_pil = Image.open(img_stream).convert("RGBA")
+            img.paste(image_pil, (shape.left, shape.top), image_pil)
+
         if shape.has_text_frame:
             text = shape.text_frame.text
             left = int(shape.left.inches * 96)
             top = int(shape.top.inches * 96)
             draw.text((left, top), text, fill="black")
-
-        if shape.shape_type == 13:  # Tipo de imagen en PPTX
-            image_stream = io.BytesIO(shape.image.blob)
-            image_pil = Image.open(image_stream)
-            img.paste(image_pil, (shape.left, shape.top))
 
     # Guardar la imagen en memoria
     img_buffer = io.BytesIO()
