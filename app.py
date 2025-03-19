@@ -201,5 +201,85 @@ def generar_certificado(nombre, documento, curso, duracion, fecha, qr_img):
         st.error("❌ No se pudo generar el certificado.")
         return None
 
+import requests
+import os
+import streamlit as st
+from io import BytesIO
+
+# 🔹 Función para convertir PPTX a PDF usando un servicio online
+def pptx_a_pdf_online(certificado_pptx):
+    """Convierte un archivo PPTX a PDF usando un servicio gratuito online y devuelve el PDF en memoria."""
+
+    # 🔹 URL de un conversor gratuito (ILovePDF o SmallPDF)
+    CONVERTER_URL = "https://www.ilovepdf.com/powerpoint_to_pdf"  # 🔹 Se puede cambiar si es necesario
+
+    # 🔹 Guardar temporalmente el PPTX en el servidor
+    temp_pptx = "certificado_temp.pptx"
+    temp_pdf = "certificado_temp.pdf"
+
+    with open(temp_pptx, "wb") as f:
+        f.write(certificado_pptx.getbuffer())
+
+    try:
+        st.info("⏳ Subiendo archivo y procesando conversión en segundo plano...")
+
+        # 🔹 Enviar el archivo al conversor
+        with open(temp_pptx, "rb") as file:
+            files = {"file": file}
+            response = requests.post(CONVERTER_URL, files=files)
+
+        if response.status_code == 200:
+            # 🔹 Descargar el PDF convertido
+            with open(temp_pdf, "wb") as pdf_file:
+                pdf_file.write(response.content)
+
+            st.success("✅ Conversión completada. Descarga tu certificado en PDF.")
+
+            # 🔹 Leer el PDF para permitir la descarga
+            with open(temp_pdf, "rb") as pdf_file:
+                pdf_stream = BytesIO(pdf_file.read())
+
+            # 🔹 Eliminar los archivos temporales
+            os.remove(temp_pptx)
+            os.remove(temp_pdf)
+
+            return pdf_stream
+        else:
+            st.error("❌ Error en la conversión a PDF.")
+            return None
+
+    except Exception as e:
+        st.error(f"❌ Error al procesar el PDF: {e}")
+        return None
+
+
+# 🔹 Botón para generar el certificado en PDF
+if st.button("🎓 Generar Certificado en PDF"):
+    if st.session_state.validado:
+        certificado_pptx = generar_certificado(
+            st.session_state.nombre_estudiante,
+            st.session_state.documento_estudiante,
+            curso_seleccionado,
+            df_cursos[df_cursos["Código"] == codigo_curso]["Duración"].values[0],
+            df_cursos[df_cursos["Código"] == codigo_curso]["Fecha"].values[0],
+            qr
+        )
+
+        if certificado_pptx:
+            certificado_pdf = pptx_a_pdf_online(certificado_pptx)
+
+            if certificado_pdf:
+                st.success("✅ Certificado generado en PDF.")
+                st.download_button(
+                    label="📥 Descargar Certificado en PDF",
+                    data=certificado_pdf,
+                    file_name=f"Certificado_{st.session_state.nombre_estudiante}.pdf",
+                    mime="application/pdf"
+                )
+            else:
+                st.error("❌ No se pudo convertir el archivo a PDF.")
+    else:
+        st.error("⚠️ No se puede generar el certificado sin validación.")
+
 
 
