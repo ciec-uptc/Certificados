@@ -211,7 +211,7 @@ def pptx_a_pdf_online(certificado_pptx):
     """Convierte un archivo PPTX a PDF usando un servicio gratuito online y devuelve el PDF en memoria."""
 
     # 🔹 URL de un conversor gratuito (ILovePDF o SmallPDF)
-    CONVERTER_URL = "https://www.ilovepdf.com/powerpoint_to_pdf"  # 🔹 Se puede cambiar si es necesario
+    CONVERTER_URL = "https://tools.pdf24.org/es/pptx-a-pdf"  # 🔹 Se puede cambiar si es necesario
 
     # 🔹 Guardar temporalmente el PPTX en el servidor
     temp_pptx = "certificado_temp.pptx"
