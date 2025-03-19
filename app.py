@@ -214,32 +214,29 @@ def generar_certificado(nombre, documento, curso, duracion, fecha, qr_img):
         st.error("❌ No se pudo generar el certificado.")
         return None
 
+import os
+import streamlit as st
+from io import BytesIO
+from pptx import Presentation
+from pptx2pdf import convert
+import tempfile
 
 def convertir_a_pdf(certificado_pptx):
-    """Convierte el PPTX generado a PDF conservando el diseño."""
+    """Convierte el PPTX generado a PDF usando una imagen renderizada de la diapositiva."""
     
     st.info("⏳ Convirtiendo el certificado a PDF...")
 
     try:
-        # Guardar el PPTX temporalmente
+        # Guardar el PPTX en un archivo temporal
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pptx") as temp_pptx:
             temp_pptx.write(certificado_pptx.getbuffer())
             temp_pptx_path = temp_pptx.name
 
-        # Cargar la presentación
-        prs = Presentation(temp_pptx_path)
-
-        # Crear imagen en blanco (Placeholder)
-        img = Image.new("RGB", (1280, 720), "white")
-        temp_img_path = temp_pptx_path.replace(".pptx", ".png")
-        img.save(temp_img_path, "PNG")
-
-        # Convertir imagen a PDF
+        # 🔹 Convertir PPTX a PDF usando pptx2pdf (conserva diseño y formatos)
         temp_pdf_path = temp_pptx_path.replace(".pptx", ".pdf")
-        with open(temp_pdf_path, "wb") as pdf_file:
-            pdf_file.write(img2pdf.convert(temp_img_path))
+        convert(temp_pptx_path, temp_pdf_path)
 
-        # Leer el PDF en memoria
+        # 🔹 Leer el PDF en memoria
         with open(temp_pdf_path, "rb") as pdf_file:
             pdf_stream = BytesIO(pdf_file.read())
 
@@ -252,10 +249,8 @@ def convertir_a_pdf(certificado_pptx):
         return None
 
     finally:
-        # Eliminar archivos temporales
+        # 🔹 Eliminar archivos temporales
         os.remove(temp_pptx_path)
-        if os.path.exists(temp_img_path):
-            os.remove(temp_img_path)
         if os.path.exists(temp_pdf_path):
             os.remove(temp_pdf_path)
 
