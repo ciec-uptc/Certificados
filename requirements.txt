@@ -2,3 +2,4 @@ qrcode[pil]
 python-pptx
 img2pdf
 pillow
+streamlit
