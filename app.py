@@ -223,7 +223,7 @@ import tempfile
 import time
 
 def convertir_a_jpg(certificado_pptx):
-    """Convierte el PPTX generado a una imagen JPG de alta calidad asegurando que el archivo se guarde correctamente."""
+    """Convierte el PPTX generado a una imagen JPG asegurando que el archivo sea válido y accesible."""
 
     st.info("⏳ Generando la imagen del certificado...")
 
@@ -231,11 +231,11 @@ def convertir_a_jpg(certificado_pptx):
         # 🔹 Guardar el PPTX en un archivo temporal
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pptx") as temp_pptx:
             temp_pptx.write(certificado_pptx.getbuffer())
-            temp_pptx.flush()  # 🔹 Asegurar que los datos se escriban en disco
+            temp_pptx.flush()  # 🔹 Forzar escritura en disco
             temp_pptx_path = temp_pptx.name
 
-        # 🔹 Esperar un poco para asegurarse de que el sistema ha guardado el archivo
-        time.sleep(1)
+        # 🔹 Esperar un poco para asegurarnos de que el sistema ha guardado el archivo
+        time.sleep(2)
 
         # 🔹 Verificar si el archivo realmente existe antes de abrirlo
         if not os.path.exists(temp_pptx_path):
@@ -244,14 +244,17 @@ def convertir_a_jpg(certificado_pptx):
 
         st.success(f"✅ Archivo PPTX guardado correctamente en: {temp_pptx_path}")
 
-        # 🔹 Cargar la presentación desde el archivo en disco
-        prs = Presentation(temp_pptx_path)
+        # 🔹 Intentar abrir el archivo con `Presentation()`
+        try:
+            prs = Presentation(temp_pptx_path)
+        except Exception as e:
+            raise ValueError(f"❌ Error al abrir el archivo PPTX con python-pptx: {e}")
 
         # 🔹 Verificar si el PPTX tiene diapositivas
         if not prs.slides:
             raise ValueError("❌ El archivo PPTX no tiene diapositivas.")
 
-        slide = prs.slides[0]
+        slide = prs.slides[0]  # Obtener la primera diapositiva
 
         # 🔹 Crear una imagen en blanco con el tamaño de la diapositiva
         temp_img_path = temp_pptx_path.replace(".pptx", ".jpg")
