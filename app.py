@@ -227,11 +227,11 @@ if st.session_state.validado:
 import streamlit as st
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageSequence
 import io
 
-def convertir_pptx_a_png(certificado_stream):
-    """Convierte la diapositiva PPTX en una imagen PNG sin perder detalles."""
+def convertir_pptx_a_gif(certificado_stream):
+    """Convierte la diapositiva PPTX en un GIF animado sin perder detalles."""
     
     # Guardar el archivo PPTX temporalmente
     pptx_path = "certificado_temporal.pptx"
@@ -240,7 +240,7 @@ def convertir_pptx_a_png(certificado_stream):
 
     # Cargar la presentación
     prs = Presentation(pptx_path)
-    slide = prs.slides[0]  # Primera y única diapositiva
+    slide = prs.slides[0]  # Solo una diapositiva
 
     # Dimensiones en píxeles
     width_px = int(prs.slide_width.inches * 96)
@@ -261,21 +261,14 @@ def convertir_pptx_a_png(certificado_stream):
             text = shape.text_frame.text
             left = int(shape.left.inches * 96)
             top = int(shape.top.inches * 96)
+            draw.text((left, top), text, fill="black")
 
-            # Dibujar texto en la imagen (Asegúrate de que `arial.ttf` está disponible)
-            try:
-                font = ImageFont.truetype("arial.ttf", 40)
-            except:
-                font = ImageFont.load_default()
-                
-            draw.text((left, top), text, fill="black", font=font)
+    # Guardar la imagen como GIF
+    gif_buffer = io.BytesIO()
+    img.save(gif_buffer, format="GIF", save_all=True, append_images=[img], loop=0, duration=1000)
+    gif_buffer.seek(0)
 
-    # Guardar la imagen en memoria
-    png_buffer = io.BytesIO()
-    img.save(png_buffer, format="PNG", quality=100)
-    png_buffer.seek(0)
-
-    return png_buffer
+    return gif_buffer
 
 # Generar el certificado en PPTX
 if st.session_state.validado:
@@ -291,13 +284,13 @@ if st.session_state.validado:
     if certificado_stream:
         st.success("✅ Certificado generado con éxito.")
 
-        # Convertir PPTX a PNG manteniendo TODO el diseño
-        certificado_png = convertir_pptx_a_png(certificado_stream)
+        # Convertir PPTX a GIF manteniendo TODO el diseño
+        certificado_gif = convertir_pptx_a_gif(certificado_stream)
 
         # Botón de descarga en Streamlit
         st.download_button(
-            label="⬇️ Descargar Certificado en PNG",
-            data=certificado_png,
-            file_name=f"Certificado_{st.session_state.nombre_estudiante}.png",
-            mime="image/png"
+            label="⬇️ Descargar Certificado en GIF",
+            data=certificado_gif,
+            file_name=f"Certificado_{st.session_state.nombre_estudiante}.gif",
+            mime="image/gif"
         )
