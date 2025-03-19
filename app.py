@@ -143,7 +143,12 @@ plantilla_stream = cargar_plantilla()
 from pptx.dml.color import RGBColor
 
 #Generar certificado
+import img2pdf
+from PIL import Image
+
 def generar_certificado(nombre, documento, curso, duracion, fecha, qr_img):
+    """Genera el certificado en formato PPTX y lo convierte a PDF."""
+    
     if plantilla_stream:
         prs = Presentation(plantilla_stream)  # Cargar la plantilla en memoria
 
@@ -191,12 +196,83 @@ def generar_certificado(nombre, documento, curso, duracion, fecha, qr_img):
                     slide.shapes.add_picture(qr_stream, left, top, width, height)
                     break  # Detener la búsqueda después de insertar el QR
 
-        # Guardar el certificado como un archivo en memoria
+        # Guardar el PPTX en memoria
         certificado_stream = BytesIO()
         prs.save(certificado_stream)
         certificado_stream.seek(0)
-        
-        return certificado_stream
+
+        # Convertir el PPTX a PDF usando una imagen intermedia
+        return convertir_a_pdf(certificado_stream)
+
     else:
         st.error("❌ No se pudo generar el certificado.")
         return None
+
+
+def convertir_a_pdf(certificado_pptx):
+    """Convierte el PPTX generado a PDF conservando el diseño."""
+    
+    st.info("⏳ Convirtiendo el certificado a PDF...")
+
+    try:
+        # Guardar el PPTX temporalmente
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pptx") as temp_pptx:
+            temp_pptx.write(certificado_pptx.getbuffer())
+            temp_pptx_path = temp_pptx.name
+
+        # Cargar la presentación
+        prs = Presentation(temp_pptx_path)
+
+        # Crear imagen en blanco (Placeholder)
+        img = Image.new("RGB", (1280, 720), "white")
+        temp_img_path = temp_pptx_path.replace(".pptx", ".png")
+        img.save(temp_img_path, "PNG")
+
+        # Convertir imagen a PDF
+        temp_pdf_path = temp_pptx_path.replace(".pptx", ".pdf")
+        with open(temp_pdf_path, "wb") as pdf_file:
+            pdf_file.write(img2pdf.convert(temp_img_path))
+
+        # Leer el PDF en memoria
+        with open(temp_pdf_path, "rb") as pdf_file:
+            pdf_stream = BytesIO(pdf_file.read())
+
+        st.success("✅ Conversión completada. Descarga tu certificado en PDF.")
+
+        return pdf_stream
+
+    except Exception as e:
+        st.error(f"❌ Error al convertir el archivo a PDF: {e}")
+        return None
+
+    finally:
+        # Eliminar archivos temporales
+        os.remove(temp_pptx_path)
+        if os.path.exists(temp_img_path):
+            os.remove(temp_img_path)
+        if os.path.exists(temp_pdf_path):
+            os.remove(temp_pdf_path)
+
+if st.button("🎓 Generar Certificado en PDF"):
+    if st.session_state.validado:
+        certificado_pdf = generar_certificado(
+            st.session_state.nombre_estudiante,
+            st.session_state.documento_estudiante,
+            curso_seleccionado,
+            df_cursos[df_cursos["Código"] == codigo_curso]["Duración"].values[0],
+            df_cursos[df_cursos["Código"] == codigo_curso]["Fecha"].values[0],
+            qr
+        )
+
+        if certificado_pdf:
+            st.success("✅ Certificado generado en PDF.")
+            st.download_button(
+                label="📥 Descargar Certificado en PDF",
+                data=certificado_pdf,
+                file_name=f"Certificado_{st.session_state['nombre_estudiante']}.pdf",
+                mime="application/pdf"
+            )
+        else:
+            st.error("❌ No se pudo convertir el archivo a PDF.")
+    else:
+        st.error("⚠️ No se puede generar el certificado sin validación.")
