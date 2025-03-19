@@ -228,23 +228,27 @@ def convertir_a_jpg(certificado_pptx):
     st.info("⏳ Generando la imagen del certificado...")
 
     try:
-        # 🔹 Guardar el PPTX en un archivo real antes de procesarlo
+        # 🔹 Guardar el PPTX en un archivo temporal
         temp_pptx_path = os.path.join(tempfile.gettempdir(), "certificado.pptx")
+        
+        # 🔹 Abrir el archivo en modo escritura binaria
         with open(temp_pptx_path, "wb") as temp_pptx:
             temp_pptx.write(certificado_pptx.getbuffer())
+            temp_pptx.flush()  # 🔹 Asegurar que los datos se escriban en disco
 
-        # 🔹 Verificar que el archivo se guardó correctamente antes de abrirlo
-        time.sleep(1)  # Esperar un momento para asegurarnos de que se guardó completamente
+        # 🔹 Esperar para asegurarnos de que el sistema ha guardado el archivo
+        time.sleep(2)
 
+        # 🔹 Verificar que el archivo realmente existe antes de abrirlo
         if not os.path.exists(temp_pptx_path):
-            raise FileNotFoundError(f"No se encontró el archivo PPTX en {temp_pptx_path}")
+            raise FileNotFoundError(f"❌ No se encontró el archivo PPTX en {temp_pptx_path}")
 
         # 🔹 Cargar la presentación
         prs = Presentation(temp_pptx_path)
 
         # 🔹 Verificar si el PPTX tiene diapositivas
         if not prs.slides:
-            raise ValueError("El archivo PPTX no tiene diapositivas.")
+            raise ValueError("❌ El archivo PPTX no tiene diapositivas.")
 
         slide = prs.slides[0]
 
@@ -255,7 +259,7 @@ def convertir_a_jpg(certificado_pptx):
 
         # 🔹 Verificar que la imagen se generó correctamente
         if not os.path.exists(temp_img_path):
-            raise FileNotFoundError(f"No se pudo generar la imagen en {temp_img_path}")
+            raise FileNotFoundError(f"❌ No se pudo generar la imagen en {temp_img_path}")
 
         # 🔹 Leer la imagen en memoria
         with open(temp_img_path, "rb") as img_file:
