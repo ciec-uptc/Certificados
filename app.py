@@ -208,7 +208,7 @@ def generar_certificado(nombre, documento, curso, duracion, fecha, qr_img):
         certificado_stream.seek(0)
 
         # Convertir el PPTX a PDF usando una imagen intermedia
-        return convertir_a_pdf(certificado_stream)
+        return convertir_a_jpg(certificado_stream)
 
     else:
         st.error("❌ No se pudo generar el certificado.")
@@ -235,15 +235,12 @@ def convertir_a_jpg(certificado_pptx):
         # Cargar la presentación
         prs = Presentation(temp_pptx_path)
 
-        # Obtener el tamaño de la diapositiva
-        slide_width = prs.slide_width
-        slide_height = prs.slide_height
+        # Obtener la primera diapositiva
+        slide = prs.slides[0]
 
-        # Crear una imagen en blanco con el tamaño correcto
-        img = Image.new("RGB", (int(slide_width), int(slide_height)), "white")
-
-        # Guardar la imagen como JPG
+        # Simular renderización de la diapositiva (por ahora, creamos una imagen blanca)
         temp_img_path = temp_pptx_path.replace(".pptx", ".jpg")
+        img = Image.new("RGB", (1280, 720), "white")
         img.save(temp_img_path, "JPEG", quality=95)
 
         # Leer la imagen en memoria
