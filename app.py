@@ -229,12 +229,15 @@ def convertir_a_jpg(certificado_pptx):
 
     try:
         # 🔹 Guardar el PPTX en un archivo temporal
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pptx") as temp_pptx:
-            temp_pptx.write(certificado_pptx.getbuffer())
-            temp_pptx.flush()  # 🔹 Forzar escritura en disco
-            temp_pptx_path = temp_pptx.name
+        temp_pptx_path = os.path.join(tempfile.gettempdir(), "certificado.pptx")
 
-        # 🔹 Esperar un poco para asegurarnos de que el sistema ha guardado el archivo
+        # 🔹 Guardar el contenido en un archivo físico y cerrarlo correctamente
+        with open(temp_pptx_path, "wb") as temp_pptx:
+            buffer = certificado_pptx.getbuffer()
+            temp_pptx.write(buffer)
+            temp_pptx.flush()
+
+        # 🔹 Esperar un poco para asegurarnos de que el sistema haya terminado de escribir el archivo
         time.sleep(2)
 
         # 🔹 Verificar si el archivo realmente existe antes de abrirlo
@@ -246,7 +249,8 @@ def convertir_a_jpg(certificado_pptx):
 
         # 🔹 Intentar abrir el archivo con `Presentation()`
         try:
-            prs = Presentation(temp_pptx_path)
+            with open(temp_pptx_path, "rb") as pptx_file:
+                prs = Presentation(pptx_file)
         except Exception as e:
             raise ValueError(f"❌ Error al abrir el archivo PPTX con python-pptx: {e}")
 
