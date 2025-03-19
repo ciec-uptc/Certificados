@@ -226,49 +226,30 @@ if st.session_state.validado:
 
 import streamlit as st
 from pptx import Presentation
-from pptx.enum.shapes import MSO_SHAPE_TYPE
-from PIL import Image, ImageDraw
 import io
+import pdf2image
 
-def convertir_pptx_a_tiff(certificado_stream):
-    """Convierte la diapositiva PPTX en una imagen TIFF sin perder detalles."""
+def convertir_pptx_a_png(certificado_stream):
+    """Convierte la diapositiva PPTX en una imagen PNG sin perder calidad."""
     
     # Guardar el archivo PPTX temporalmente
     pptx_path = "certificado_temporal.pptx"
     with open(pptx_path, "wb") as f:
         f.write(certificado_stream.getbuffer())
 
-    # Cargar la presentación
-    prs = Presentation(pptx_path)
-    slide = prs.slides[0]  # Primera y única diapositiva
+    # Convertir el PPTX a PDF
+    pdf_path = "certificado_temporal.pdf"
+    os.system(f"libreoffice --headless --convert-to pdf {pptx_path} --outdir ./")
 
-    # Dimensiones en píxeles
-    width_px = int(prs.slide_width.inches * 96)
-    height_px = int(prs.slide_height.inches * 96)
+    # Convertir PDF a imagen PNG
+    images = pdf2image.convert_from_path(pdf_path, dpi=300)
+    
+    # Guardar la imagen en memoria
+    png_buffer = io.BytesIO()
+    images[0].save(png_buffer, format="PNG", quality=100)
+    png_buffer.seek(0)
 
-    # Crear una imagen en blanco con fondo blanco
-    img = Image.new("RGB", (width_px, height_px), "white")
-    draw = ImageDraw.Draw(img)
-
-    # Extraer imágenes y textos de la diapositiva
-    for shape in slide.shapes:
-        if shape.shape_type == MSO_SHAPE_TYPE.PICTURE:  # Si es una imagen
-            img_stream = io.BytesIO(shape.image.blob)
-            image_pil = Image.open(img_stream).convert("RGBA")
-            img.paste(image_pil, (shape.left, shape.top), image_pil)
-
-        if shape.has_text_frame:
-            text = shape.text_frame.text
-            left = int(shape.left.inches * 96)
-            top = int(shape.top.inches * 96)
-            draw.text((left, top), text, fill="black")
-
-    # Guardar la imagen en TIFF
-    tiff_buffer = io.BytesIO()
-    img.save(tiff_buffer, format="TIFF", quality=100)
-    tiff_buffer.seek(0)
-
-    return tiff_buffer
+    return png_buffer
 
 # Generar el certificado en PPTX
 if st.session_state.validado:
@@ -284,13 +265,13 @@ if st.session_state.validado:
     if certificado_stream:
         st.success("✅ Certificado generado con éxito.")
 
-        # Convertir PPTX a TIFF manteniendo TODO el diseño
-        certificado_tiff = convertir_pptx_a_tiff(certificado_stream)
+        # Convertir PPTX a PNG manteniendo TODO el diseño
+        certificado_png = convertir_pptx_a_png(certificado_stream)
 
         # Botón de descarga en Streamlit
         st.download_button(
-            label="⬇️ Descargar Certificado en TIFF",
-            data=certificado_tiff,
-            file_name=f"Certificado_{st.session_state.nombre_estudiante}.tiff",
-            mime="image/tiff"
+            label="⬇️ Descargar Certificado en PNG",
+            data=certificado_png,
+            file_name=f"Certificado_{st.session_state.nombre_estudiante}.png",
+            mime="image/png"
         )
