@@ -1,4 +1,3 @@
-streamlit
 pillow
 img2pdf
 python-pptx
