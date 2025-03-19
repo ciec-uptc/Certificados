@@ -219,22 +219,25 @@ import streamlit as st
 from io import BytesIO
 from pptx import Presentation
 from PIL import Image
+import tempfile
 
 def convertir_a_jpg(certificado_pptx):
-    """Convierte el PPTX generado a una imagen JPG asegurando que el archivo sea válido."""
+    """Convierte el PPTX generado a una imagen JPG de alta calidad asegurando que el archivo sea válido."""
 
     st.info("⏳ Generando la imagen del certificado...")
 
     try:
-        # 🔹 Guardar el PPTX en memoria y verificar que es válido
-        pptx_stream = BytesIO(certificado_pptx.getbuffer())
-        pptx_stream.seek(0)  # Asegurar que estamos en el inicio del archivo
+        # 🔹 Guardar el PPTX en un archivo temporal en disco
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pptx") as temp_pptx:
+            temp_pptx.write(certificado_pptx.getbuffer())
+            temp_pptx_path = temp_pptx.name
 
-        # 🔹 Intentar abrir el archivo PPTX
-        try:
-            prs = Presentation(pptx_stream)
-        except Exception as e:
-            raise ValueError(f"❌ Error al leer el archivo PPTX: {e}")
+        # 🔹 Asegurar que el archivo existe antes de abrirlo
+        if not os.path.exists(temp_pptx_path):
+            raise FileNotFoundError(f"❌ No se encontró el archivo PPTX en {temp_pptx_path}")
+
+        # 🔹 Cargar la presentación desde el archivo en disco
+        prs = Presentation(temp_pptx_path)
 
         # 🔹 Verificar si el PPTX tiene diapositivas
         if not prs.slides:
@@ -243,10 +246,17 @@ def convertir_a_jpg(certificado_pptx):
         slide = prs.slides[0]  # Obtener la primera diapositiva
 
         # 🔹 Crear una imagen en blanco con el tamaño de la diapositiva
-        img_stream = BytesIO()
+        temp_img_path = temp_pptx_path.replace(".pptx", ".jpg")
         img = Image.new("RGB", (1280, 720), "white")
-        img.save(img_stream, "JPEG", quality=95)
-        img_stream.seek(0)  # Volver al inicio del archivo en memoria
+        img.save(temp_img_path, "JPEG", quality=95)
+
+        # 🔹 Verificar que la imagen se generó correctamente
+        if not os.path.exists(temp_img_path):
+            raise FileNotFoundError(f"❌ No se pudo generar la imagen en {temp_img_path}")
+
+        # 🔹 Leer la imagen en memoria
+        with open(temp_img_path, "rb") as img_file:
+            img_stream = BytesIO(img_file.read())
 
         st.success("✅ Imagen generada correctamente. Descarga tu certificado en JPG.")
 
@@ -255,6 +265,13 @@ def convertir_a_jpg(certificado_pptx):
     except Exception as e:
         st.error(f"❌ Error al generar la imagen JPG: {e}")
         return None
+
+    finally:
+        # 🔹 Eliminar archivos temporales si existen
+        if os.path.exists(temp_pptx_path):
+            os.remove(temp_pptx_path)
+        if os.path.exists(temp_img_path):
+            os.remove(temp_img_path)
 
 if st.button("🎓 Generar Certificado en Imagen JPG"):
     if st.session_state.validado:
