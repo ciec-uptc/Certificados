@@ -229,7 +229,7 @@ import io
 import requests
 
 # URL del conversor online (por ejemplo, Convertio)
-CONVERSOR_URL = "https://api.convertio.co/v1/convert"
+CONVERSOR_URL = "https://tools.pdf24.org/es/pptx-a-pdf"
 
 def convertir_pptx_a_pdf_automaticamente(certificado_stream):
     """Convierte el PPTX a PDF usando un servicio en línea."""
