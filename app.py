@@ -225,31 +225,29 @@ if st.session_state.validado:
             )
 
 import streamlit as st
-from pptx import Presentation
+import os
 import io
-import pdf2image
+from pptx import Presentation
 
 def convertir_pptx_a_png(certificado_stream):
-    """Convierte la diapositiva PPTX en una imagen PNG sin perder calidad."""
-    
+    """Convierte la diapositiva PPTX en una imagen PNG sin perder fidelidad."""
+
     # Guardar el archivo PPTX temporalmente
     pptx_path = "certificado_temporal.pptx"
     with open(pptx_path, "wb") as f:
         f.write(certificado_stream.getbuffer())
 
-    # Convertir el PPTX a PDF
-    pdf_path = "certificado_temporal.pdf"
-    os.system(f"libreoffice --headless --convert-to pdf {pptx_path} --outdir ./")
+    # Convertir PPTX a PNG usando unoconv
+    png_path = "certificado.png"
+    os.system(f"unoconv -f png -o {png_path} {pptx_path}")
 
-    # Convertir PDF a imagen PNG
-    images = pdf2image.convert_from_path(pdf_path, dpi=300)
-    
-    # Guardar la imagen en memoria
-    png_buffer = io.BytesIO()
-    images[0].save(png_buffer, format="PNG", quality=100)
-    png_buffer.seek(0)
-
-    return png_buffer
+    # Cargar la imagen resultante en memoria
+    if os.path.exists(png_path):
+        with open(png_path, "rb") as img_file:
+            img_bytes = img_file.read()
+        return io.BytesIO(img_bytes)
+    else:
+        return None
 
 # Generar el certificado en PPTX
 if st.session_state.validado:
@@ -268,10 +266,14 @@ if st.session_state.validado:
         # Convertir PPTX a PNG manteniendo TODO el diseño
         certificado_png = convertir_pptx_a_png(certificado_stream)
 
-        # Botón de descarga en Streamlit
-        st.download_button(
-            label="⬇️ Descargar Certificado en PNG",
-            data=certificado_png,
-            file_name=f"Certificado_{st.session_state.nombre_estudiante}.png",
-            mime="image/png"
-        )
+        if certificado_png:
+            # Botón de descarga en Streamlit
+            st.download_button(
+                label="⬇️ Descargar Certificado en PNG",
+                data=certificado_png,
+                file_name=f"Certificado_{st.session_state.nombre_estudiante}.png",
+                mime="image/png"
+            )
+        else:
+            st.error("❌ Error al convertir el certificado a imagen.")
+
