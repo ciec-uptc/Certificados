@@ -223,7 +223,7 @@ import tempfile
 import time
 
 def convertir_a_jpg(certificado_pptx):
-    """Convierte el PPTX generado a una imagen JPG asegurando que el archivo sea válido."""
+    """Convierte el PPTX generado a una imagen JPG asegurando que el archivo sea válido y accesible."""
 
     st.info("⏳ Generando la imagen del certificado...")
 
@@ -232,14 +232,14 @@ def convertir_a_jpg(certificado_pptx):
         temp_pptx_path = os.path.join(tempfile.gettempdir(), "certificado.pptx")
 
         # 🔹 Guardar el contenido en un archivo físico y cerrarlo correctamente
-        with open(temp_pptx_path, "wb") as temp_pptx:
-            buffer = certificado_pptx.getbuffer()
-            if not buffer:
-                raise ValueError("❌ El archivo PPTX está vacío. No se puede generar una imagen.")
-            temp_pptx.write(buffer)
-            temp_pptx.flush()
+        buffer = certificado_pptx.getbuffer()
+        if not buffer or len(buffer) == 0:
+            raise ValueError("❌ El archivo PPTX está vacío. No se puede generar una imagen.")
 
-        # 🔹 Esperar para asegurarse de que el archivo se ha guardado correctamente
+        with open(temp_pptx_path, "wb") as temp_pptx:
+            temp_pptx.write(buffer)
+
+        # 🔹 Esperar un poco para asegurarnos de que el sistema haya terminado de escribir el archivo
         time.sleep(2)
 
         # 🔹 Verificar si el archivo realmente existe antes de abrirlo
@@ -251,7 +251,12 @@ def convertir_a_jpg(certificado_pptx):
 
         # 🔹 Intentar abrir el archivo con `Presentation()`
         try:
-            prs = Presentation(temp_pptx_path)
+            with open(temp_pptx_path, "rb") as pptx_file:
+                file_content = pptx_file.read()
+                if len(file_content) == 0:
+                    raise ValueError("❌ El archivo PPTX guardado está vacío.")
+                pptx_file.seek(0)  # Volver al inicio del archivo
+                prs = Presentation(pptx_file)
         except Exception as e:
             raise ValueError(f"❌ Error al abrir el archivo PPTX con python-pptx: {e}")
 
