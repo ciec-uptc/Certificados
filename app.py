@@ -223,23 +223,25 @@ import tempfile
 import time
 
 def convertir_a_jpg(certificado_pptx):
-    """Convierte el PPTX generado a una imagen JPG asegurando que el archivo sea válido y accesible."""
+    """Convierte el PPTX generado a una imagen JPG asegurando que el archivo sea válido."""
 
     st.info("⏳ Generando la imagen del certificado...")
 
     try:
-        # 🔹 Guardar el PPTX en un archivo temporal
-        temp_pptx_path = os.path.join(tempfile.gettempdir(), "certificado.pptx")
+        # 🔹 Guardar el PPTX en memoria antes de escribirlo en disco
+        pptx_stream = BytesIO(certificado_pptx.getbuffer())
+        pptx_stream.seek(0)  # Asegurar que el archivo se lea desde el inicio
 
-        # 🔹 Guardar el contenido en un archivo físico y cerrarlo correctamente
-        buffer = certificado_pptx.getbuffer()
-        if not buffer or len(buffer) == 0:
+        # 🔹 Verificar si el archivo PPTX realmente tiene contenido antes de guardarlo
+        if pptx_stream.getbuffer().nbytes == 0:
             raise ValueError("❌ El archivo PPTX está vacío. No se puede generar una imagen.")
 
+        # 🔹 Guardar el archivo PPTX en un archivo temporal en disco
+        temp_pptx_path = os.path.join(tempfile.gettempdir(), "certificado.pptx")
         with open(temp_pptx_path, "wb") as temp_pptx:
-            temp_pptx.write(buffer)
+            temp_pptx.write(pptx_stream.getbuffer())
 
-        # 🔹 Esperar un poco para asegurarnos de que el sistema haya terminado de escribir el archivo
+        # 🔹 Esperar para asegurarse de que el sistema haya terminado de escribir el archivo
         time.sleep(2)
 
         # 🔹 Verificar si el archivo realmente existe antes de abrirlo
@@ -247,16 +249,15 @@ def convertir_a_jpg(certificado_pptx):
             st.error(f"❌ ERROR: No se encontró el archivo PPTX en {temp_pptx_path}")
             return None
 
+        # 🔹 Verificar el tamaño del archivo antes de abrirlo con `Presentation()`
+        if os.path.getsize(temp_pptx_path) < 1000:  # Un archivo PPTX válido no puede ser tan pequeño
+            raise ValueError("❌ El archivo PPTX guardado está corrupto o vacío.")
+
         st.success(f"✅ Archivo PPTX guardado correctamente en: {temp_pptx_path}")
 
         # 🔹 Intentar abrir el archivo con `Presentation()`
         try:
-            with open(temp_pptx_path, "rb") as pptx_file:
-                file_content = pptx_file.read()
-                if len(file_content) == 0:
-                    raise ValueError("❌ El archivo PPTX guardado está vacío.")
-                pptx_file.seek(0)  # Volver al inicio del archivo
-                prs = Presentation(pptx_file)
+            prs = Presentation(temp_pptx_path)
         except Exception as e:
             raise ValueError(f"❌ Error al abrir el archivo PPTX con python-pptx: {e}")
 
