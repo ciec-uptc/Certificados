@@ -225,29 +225,15 @@ if st.session_state.validado:
             )
 
 import streamlit as st
-import os
 import io
-from pptx import Presentation
 
-def convertir_pptx_a_png(certificado_stream):
-    """Convierte la diapositiva PPTX en una imagen PNG sin perder fidelidad."""
-
-    # Guardar el archivo PPTX temporalmente
-    pptx_path = "certificado_temporal.pptx"
-    with open(pptx_path, "wb") as f:
-        f.write(certificado_stream.getbuffer())
-
-    # Convertir PPTX a PNG usando unoconv
-    png_path = "certificado.png"
-    os.system(f"unoconv -f png -o {png_path} {pptx_path}")
-
-    # Cargar la imagen resultante en memoria
-    if os.path.exists(png_path):
-        with open(png_path, "rb") as img_file:
-            img_bytes = img_file.read()
-        return io.BytesIO(img_bytes)
-    else:
-        return None
+# Enlaces a conversores online gratuitos
+CONVERSORES_ONLINE = [
+    ("CloudConvert (gratis con limitaciones)", "https://cloudconvert.com/pptx-to-png"),
+    ("Zamzar", "https://www.zamzar.com/convert/pptx-to-png/"),
+    ("Online2PDF", "https://www.online2pdf.com/convert-pptx-to-png"),
+    ("Convertio", "https://convertio.co/es/pptx-png/")
+]
 
 # Generar el certificado en PPTX
 if st.session_state.validado:
@@ -263,17 +249,16 @@ if st.session_state.validado:
     if certificado_stream:
         st.success("✅ Certificado generado con éxito.")
 
-        # Convertir PPTX a PNG manteniendo TODO el diseño
-        certificado_png = convertir_pptx_a_png(certificado_stream)
+        # Botón de descarga del PPTX
+        st.download_button(
+            label="⬇️ Descargar Certificado en PPTX",
+            data=certificado_stream,
+            file_name=f"Certificado_{st.session_state.nombre_estudiante}.pptx",
+            mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        )
 
-        if certificado_png:
-            # Botón de descarga en Streamlit
-            st.download_button(
-                label="⬇️ Descargar Certificado en PNG",
-                data=certificado_png,
-                file_name=f"Certificado_{st.session_state.nombre_estudiante}.png",
-                mime="image/png"
-            )
-        else:
-            st.error("❌ Error al convertir el certificado a imagen.")
+        # Mostrar enlaces a conversores online
+        st.markdown("### 📤 **Convierte tu PPTX a Imagen Online**")
+        for nombre, url in CONVERSORES_ONLINE:
+            st.markdown(f"[🔗 {nombre}]({url})")
 
