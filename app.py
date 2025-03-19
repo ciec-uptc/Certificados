@@ -225,23 +225,40 @@ if st.session_state.validado:
             )
 
 import streamlit as st
-import base64
-import urllib.parse
+import requests
+import time
+import io
 
-# URL del conversor online
-CONVERSOR_URL = "https://www.convertio.co/es/pptx-png/"
+# URL del conversor online (OnlineConvert)
+UPLOAD_URL = "https://api.online-convert.com/v2/jobs"
 
-def generar_link_conversion(pptx_data, nombre_archivo):
-    """Genera un link para subir automáticamente el archivo a Convertio."""
-    
-    # Convertir archivo a base64 para pasarlo en la URL (si el servicio lo permite)
-    pptx_base64 = base64.b64encode(pptx_data.getvalue()).decode()
-    
-    # Generar URL con el archivo adjunto (si el servicio lo permite)
-    params = urllib.parse.urlencode({"file": pptx_base64, "filename": nombre_archivo})
-    conversion_url = f"{CONVERSOR_URL}?{params}"
+def convertir_pptx_a_png_automaticamente(certificado_stream):
+    """Sube el PPTX a un servicio de conversión y obtiene el PNG automáticamente."""
 
-    return conversion_url
+    # Guardar el archivo PPTX temporalmente
+    files = {
+        "input": ("certificado.pptx", certificado_stream, "application/vnd.openxmlformats-officedocument.presentationml.presentation")
+    }
+
+    # Enviar solicitud de conversión
+    response = requests.post(UPLOAD_URL, files=files)
+
+    if response.status_code == 201:
+        job_id = response.json()["id"]
+
+        # Esperar la conversión
+        st.info("⏳ Convirtiendo el certificado a PNG...")
+        time.sleep(10)  # Ajustar según la velocidad del servicio
+
+        # Obtener el enlace de descarga
+        status_url = f"https://api.online-convert.com/v2/jobs/{job_id}"
+        status_response = requests.get(status_url)
+
+        if status_response.status_code == 200 and status_response.json()["status"]["code"] == "completed":
+            download_url = status_response.json()["output"][0]["uri"]
+            return download_url
+
+    return None
 
 # Generar el certificado en PPTX
 if st.session_state.validado:
@@ -257,17 +274,12 @@ if st.session_state.validado:
     if certificado_stream:
         st.success("✅ Certificado generado con éxito.")
 
-        # Botón de descarga del PPTX
-        st.download_button(
-            label="⬇️ Descargar Certificado en PPTX",
-            data=certificado_stream,
-            file_name=f"Certificado_{st.session_state.nombre_estudiante}.pptx",
-            mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
-        )
+        # Convertir PPTX a PNG automáticamente
+        download_url = convertir_pptx_a_png_automaticamente(certificado_stream)
 
-        # Generar link de conversión automática
-        conversion_url = CONVERSOR_URL  # Redirige a Convertio para subir el PPTX
-
-        # Botón para convertir a PNG automáticamente
-        st.markdown(f"[🔄 Convertir a PNG automáticamente en Convertio]({conversion_url})", unsafe_allow_html=True)
+        if download_url:
+            # Botón de descarga automática del PNG convertido
+            st.markdown(f"[⬇️ Descargar Certificado en PNG]({download_url})", unsafe_allow_html=True)
+        else:
+            st.error("❌ No se pudo convertir el archivo.")
 
