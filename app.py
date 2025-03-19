@@ -202,38 +202,49 @@ def generar_certificado(nombre, documento, curso, duracion, fecha, qr_img):
         return None
 
 from pptx import Presentation
-from reportlab.pdfgen import canvas
+from pdf2image import convert_from_path
+from PIL import Image
 from io import BytesIO
+import tempfile
+import os
 
 def pptx_a_pdf_local(certificado_pptx):
-    """Convierte un archivo PPTX a PDF de forma local sin usar APIs externas."""
+    """Convierte un archivo PPTX a PDF conservando el formato visual."""
     
     st.info("⏳ Convirtiendo el certificado a PDF...")
 
-    # 🔹 Cargar el archivo PPTX en memoria
-    ppt = Presentation(certificado_pptx)
+    # 🔹 Guardar el archivo PPTX temporalmente
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pptx") as temp_pptx:
+        temp_pptx.write(certificado_pptx.getbuffer())
+        temp_pptx_path = temp_pptx.name  # Ruta temporal del archivo
 
-    # 🔹 Crear un PDF en memoria
-    pdf_stream = BytesIO()
-    c = canvas.Canvas(pdf_stream)
+    try:
+        # 🔹 Abrir la presentación
+        prs = Presentation(temp_pptx_path)
 
-    # 🔹 Extraer texto de cada diapositiva y escribirlo en el PDF
-    for slide in ppt.slides:
-        text_content = ""
-        for shape in slide.shapes:
-            if hasattr(shape, "text"):
-                text_content += shape.text + "\n"
+        # 🔹 Exportar la primera diapositiva como imagen
+        slide_image_path = temp_pptx_path.replace(".pptx", ".png")
+        prs.slides[0].export(slide_image_path, format="png")
 
-        # 🔹 Agregar contenido al PDF
-        c.drawString(100, 750, text_content)
-        c.showPage()
+        # 🔹 Convertir la imagen a PDF
+        pdf_stream = BytesIO()
+        img = Image.open(slide_image_path)
+        img.save(pdf_stream, format="PDF", resolution=300)
+        pdf_stream.seek(0)
 
-    # 🔹 Guardar el PDF
-    c.save()
-    pdf_stream.seek(0)
+        st.success("✅ Conversión completada. Descarga tu certificado en PDF.")
 
-    st.success("✅ Conversión completada. Descarga tu certificado en PDF.")
-    return pdf_stream
+        return pdf_stream
+
+    except Exception as e:
+        st.error(f"❌ Error al convertir el archivo a PDF: {e}")
+        return None
+
+    finally:
+        # 🔹 Eliminar archivos temporales
+        os.remove(temp_pptx_path)
+        if os.path.exists(slide_image_path):
+            os.remove(slide_image_path)
 
 if st.button("🎓 Generar Certificado en PDF"):
     if st.session_state.validado:
