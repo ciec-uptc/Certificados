@@ -257,7 +257,9 @@ def pptx_a_pdf_local(certificado_pptx):
         if os.path.exists(temp_pdf_path):
             os.remove(temp_pdf_path)
 
-        if st.button("🎓 Generar Certificado en PDF"):
+
+# 🔹 Generación y descarga del certificado en PDF
+if st.button("🎓 Generar Certificado en PDF"):
     if st.session_state.validado:
         certificado_pptx = generar_certificado(
             st.session_state.nombre_estudiante,
