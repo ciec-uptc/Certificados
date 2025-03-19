@@ -227,11 +227,11 @@ if st.session_state.validado:
 import streamlit as st
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 import io
 
 def convertir_pptx_a_png(certificado_stream):
-    """Convierte la diapositiva PPTX en una imagen PNG sin perder formato."""
+    """Convierte la diapositiva PPTX en una imagen PNG sin perder detalles."""
     
     # Guardar el archivo PPTX temporalmente
     pptx_path = "certificado_temporal.pptx"
@@ -240,9 +240,9 @@ def convertir_pptx_a_png(certificado_stream):
 
     # Cargar la presentación
     prs = Presentation(pptx_path)
-    slide = prs.slides[0]  # Solo una diapositiva
+    slide = prs.slides[0]  # Primera y única diapositiva
 
-    # Dimensiones en píxeles (PowerPoint usa puntos de 1/72 pulgadas)
+    # Dimensiones en píxeles
     width_px = int(prs.slide_width.inches * 96)
     height_px = int(prs.slide_height.inches * 96)
 
@@ -250,12 +250,25 @@ def convertir_pptx_a_png(certificado_stream):
     img = Image.new("RGB", (width_px, height_px), "white")
     draw = ImageDraw.Draw(img)
 
-    # Extraer imágenes de la diapositiva
+    # Extraer imágenes y textos de la diapositiva
     for shape in slide.shapes:
         if shape.shape_type == MSO_SHAPE_TYPE.PICTURE:  # Si es una imagen
             img_stream = io.BytesIO(shape.image.blob)
             image_pil = Image.open(img_stream).convert("RGBA")
             img.paste(image_pil, (shape.left, shape.top), image_pil)
+
+        if shape.has_text_frame:
+            text = shape.text_frame.text
+            left = int(shape.left.inches * 96)
+            top = int(shape.top.inches * 96)
+
+            # Dibujar texto en la imagen (Asegúrate de que `arial.ttf` está disponible)
+            try:
+                font = ImageFont.truetype("arial.ttf", 40)
+            except:
+                font = ImageFont.load_default()
+                
+            draw.text((left, top), text, fill="black", font=font)
 
     # Guardar la imagen en memoria
     png_buffer = io.BytesIO()
