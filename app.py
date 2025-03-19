@@ -259,3 +259,32 @@ def pptx_a_pdf_local(certificado_pptx):
         if os.path.exists(temp_pdf_path):
             os.remove(temp_pdf_path)
 
+
+# 🔹 Generación y descarga del certificado en PDF
+if st.button("🎓 Generar Certificado en PDF"):
+    if st.session_state.get("validado", False):
+        certificado_pptx = generar_certificado(
+            st.session_state["nombre_estudiante"],
+            st.session_state["documento_estudiante"],
+            curso_seleccionado,
+            df_cursos[df_cursos["Código"] == codigo_curso]["Duración"].values[0],
+            df_cursos[df_cursos["Código"] == codigo_curso]["Fecha"].values[0],
+            qr
+        )
+
+        if certificado_pptx:
+            certificado_pdf = pptx_a_pdf_local(certificado_pptx)
+
+            if certificado_pdf:
+                st.success("✅ Certificado generado en PDF.")
+                st.download_button(
+                    label="📥 Descargar Certificado en PDF",
+                    data=certificado_pdf,
+                    file_name=f"Certificado_{st.session_state['nombre_estudiante']}.pdf",
+                    mime="application/pdf"
+                )
+            else:
+                st.error("❌ No se pudo convertir el archivo a PDF.")
+    else:
+        st.error("⚠️ No se puede generar el certificado sin validación.")
+
