@@ -225,36 +225,29 @@ if st.session_state.validado:
             )
 
 import streamlit as st
-import requests
-import time
 import io
+import requests
 
-# URL del servicio de conversión (Convertio, CloudConvert u otros)
-CONVERSOR_URL = "https://www.cloudconvert.com/api/v2/convert"
+# URL del conversor online (por ejemplo, Convertio)
+CONVERSOR_URL = "https://api.convertio.co/v1/convert"
 
 def convertir_pptx_a_pdf_automaticamente(certificado_stream):
-    """Sube el PPTX a un servicio web y obtiene el PDF de solo lectura automáticamente."""
-
-    # Guardar el archivo PPTX temporalmente
+    """Convierte el PPTX a PDF usando un servicio en línea."""
+    
+    # Subir archivo PPTX
     files = {
         "input": ("certificado.pptx", certificado_stream, "application/vnd.openxmlformats-officedocument.presentationml.presentation")
     }
-
-    # Enviar solicitud para convertir PPTX a PDF
+    
+    # Realizar solicitud POST para convertir el archivo
     response = requests.post(CONVERSOR_URL, files=files)
 
     if response.status_code == 200:
-        job_id = response.json().get("id")
-
-        # Esperar la conversión
-        st.info("⏳ Convirtiendo el certificado a PDF...")
-        time.sleep(15)  # Ajustar según la velocidad del servicio
-
-        # Obtener el enlace de descarga del PDF
-        download_url = f"https://www.cloudconvert.com/api/v2/jobs/{job_id}/download"
+        download_url = response.json().get('download_url')  # Obtenemos la URL de descarga del PDF
         return download_url
-
-    return None
+    else:
+        st.error("❌ No se pudo convertir el PPTX a PDF.")
+        return None
 
 # Generar el certificado en PPTX
 if st.session_state.validado:
