@@ -224,50 +224,51 @@ if st.session_state.validado:
                 mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
             )
 
-import streamlit as st
 from pptx import Presentation
-from PIL import Image, ImageDraw, ImageFont
 import io
+import streamlit as st
+import svgwrite
 
-def convertir_pptx_a_imagen(certificado_stream):
-    """Convierte la diapositiva PPTX en una imagen PNG de alta calidad sin perder diseño."""
+def convertir_pptx_a_svg(certificado_stream):
+    """Convierte la diapositiva PPTX en un archivo SVG sin perder calidad."""
     
-    # Guardar el PPTX temporalmente
+    # Guardar el archivo PPTX temporalmente
     pptx_path = "certificado_temporal.pptx"
     with open(pptx_path, "wb") as f:
         f.write(certificado_stream.getbuffer())
 
     # Abrir la presentación
     prs = Presentation(pptx_path)
-    slide = prs.slides[0]  # Primera y única diapositiva
+    slide = prs.slides[0]  # Solo una diapositiva
 
-    # Dimensiones en píxeles (PowerPoint usa puntos de 1/72 pulgadas)
-    width_px = int(prs.slide_width.inches * 96)
-    height_px = int(prs.slide_height.inches * 96)
+    # Dimensiones del SVG (PPTX usa puntos de 1/72 pulgadas)
+    width = int(prs.slide_width.inches * 96)
+    height = int(prs.slide_height.inches * 96)
 
-    # Crear una imagen en blanco
-    img = Image.new("RGB", (width_px, height_px), "white")
-    draw = ImageDraw.Draw(img)
+    # Crear el archivo SVG
+    svg_buffer = io.BytesIO()
+    dwg = svgwrite.Drawing(size=(width, height))
 
-    # Extraer imágenes y textos de la diapositiva
+    # Dibujar textos e imágenes en el SVG
     for shape in slide.shapes:
-        if shape.shape_type == 13:  # Es una imagen
-            img_stream = io.BytesIO(shape.image.blob)
-            image_pil = Image.open(img_stream).convert("RGBA")
-            img.paste(image_pil, (shape.left, shape.top), image_pil)
-
         if shape.has_text_frame:
             text = shape.text_frame.text
             left = int(shape.left.inches * 96)
             top = int(shape.top.inches * 96)
-            draw.text((left, top), text, fill="black")
+            dwg.add(dwg.text(text, insert=(left, top), fill="black", font_size="20px"))
 
-    # Guardar la imagen en memoria
-    img_buffer = io.BytesIO()
-    img.save(img_buffer, format="PNG", quality=100)
-    img_buffer.seek(0)
+        if shape.shape_type == 13:  # Si es una imagen
+            img_stream = io.BytesIO(shape.image.blob)
+            img_path = f"temp_image.png"
+            with open(img_path, "wb") as img_file:
+                img_file.write(img_stream.getbuffer())
+            dwg.add(dwg.image(img_path, insert=(shape.left, shape.top)))
 
-    return img_buffer
+    # Guardar el SVG en memoria
+    dwg.write(svg_buffer)
+    svg_buffer.seek(0)
+
+    return svg_buffer
 
 # Generar el certificado en PPTX
 if st.session_state.validado:
@@ -283,13 +284,13 @@ if st.session_state.validado:
     if certificado_stream:
         st.success("✅ Certificado generado con éxito.")
 
-        # Convertir PPTX a imagen PNG
-        imagen_certificado = convertir_pptx_a_imagen(certificado_stream)
+        # Convertir PPTX a SVG
+        certificado_svg = convertir_pptx_a_svg(certificado_stream)
 
         # Botón de descarga en Streamlit
         st.download_button(
-            label="⬇️ Descargar Certificado en PNG",
-            data=imagen_certificado,
-            file_name=f"Certificado_{st.session_state.nombre_estudiante}.png",
-            mime="image/png"
+            label="⬇️ Descargar Certificado en SVG",
+            data=certificado_svg,
+            file_name=f"Certificado_{st.session_state.nombre_estudiante}.svg",
+            mime="image/svg+xml"
         )
