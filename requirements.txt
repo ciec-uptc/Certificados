@@ -1,3 +1,5 @@
 qrcode[pil]
 python-pptx
 reportlab
+pdf2image
+poppler-utils
