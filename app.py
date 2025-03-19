@@ -224,34 +224,43 @@ if st.session_state.validado:
                 mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
             )
 
+from pptx import Presentation
 from pptx.util import Inches
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 import io
 
-def convertir_a_imagen(certificado_stream):
-    """Convierte el certificado PPTX a una imagen PNG de alta calidad."""
-    with open("certificado_temporal.pptx", "wb") as f:
+def convertir_pptx_a_imagen(certificado_stream):
+    """Convierte la diapositiva PPTX en una imagen PNG con alta calidad."""
+    
+    # Guardar el archivo temporalmente
+    pptx_path = "certificado_temporal.pptx"
+    with open(pptx_path, "wb") as f:
         f.write(certificado_stream.getbuffer())
 
-    # Cargar la presentación
-    prs = Presentation("certificado_temporal.pptx")
-    slide = prs.slides[0]  # Solo tiene una diapositiva
+    # Abrir la presentación
+    prs = Presentation(pptx_path)
+    slide = prs.slides[0]  # Primera (y única) diapositiva
 
-    # Dimensiones en píxeles (pptx usa puntos de 1/72 pulgadas)
+    # Dimensiones en píxeles (PPTX usa puntos de 1/72 pulgadas, Pillow usa píxeles)
     width_px = int(prs.slide_width.inches * 96)
     height_px = int(prs.slide_height.inches * 96)
 
     # Crear una imagen en blanco
-    img = Image.new("RGB", (width_px, height_px), (255, 255, 255))
+    img = Image.new("RGB", (width_px, height_px), "white")
     draw = ImageDraw.Draw(img)
 
-    # Dibujar los textos en la imagen manteniendo posiciones
+    # Dibujar todos los textos en la imagen
     for shape in slide.shapes:
         if shape.has_text_frame:
             text = shape.text_frame.text
             left = int(shape.left.inches * 96)
             top = int(shape.top.inches * 96)
             draw.text((left, top), text, fill="black")
+
+        if shape.shape_type == 13:  # Tipo de imagen en PPTX
+            image_stream = io.BytesIO(shape.image.blob)
+            image_pil = Image.open(image_stream)
+            img.paste(image_pil, (shape.left, shape.top))
 
     # Guardar la imagen en memoria
     img_buffer = io.BytesIO()
@@ -274,10 +283,10 @@ if st.session_state.validado:
     if certificado_stream:
         st.success("✅ Certificado generado con éxito.")
 
-        # Convertir a imagen PNG
-        imagen_certificado = convertir_a_imagen(certificado_stream)
+        # Convertir PPTX a imagen PNG
+        imagen_certificado = convertir_pptx_a_imagen(certificado_stream)
 
-        # Botón de descarga
+        # Botón de descarga en Streamlit
         st.download_button(
             label="⬇️ Descargar Certificado en PNG",
             data=imagen_certificado,
