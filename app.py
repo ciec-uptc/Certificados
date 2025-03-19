@@ -220,7 +220,7 @@ from io import BytesIO
 from pptx import Presentation
 from PIL import Image
 import tempfile
-import time  # 🔹 Añadimos un pequeño tiempo de espera para asegurar que el archivo se guarde
+import time
 
 def convertir_a_jpg(certificado_pptx):
     """Convierte el PPTX generado a una imagen JPG de alta calidad."""
@@ -228,16 +228,17 @@ def convertir_a_jpg(certificado_pptx):
     st.info("⏳ Generando la imagen del certificado...")
 
     try:
-        # 🔹 Guardar el PPTX en un archivo temporal
+        # 🔹 Guardar el PPTX en un archivo temporal y cerrarlo para asegurar que se escribe correctamente
+        temp_pptx_path = None
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pptx") as temp_pptx:
             temp_pptx.write(certificado_pptx.getbuffer())
             temp_pptx_path = temp_pptx.name
 
-        # 🔹 Esperar un momento para asegurarse de que el archivo se ha guardado
+        # 🔹 Esperar un poco para asegurarse de que el archivo se ha guardado completamente
         time.sleep(1)
 
-        # 🔹 Verificar si el archivo existe realmente antes de abrirlo
-        if not os.path.exists(temp_pptx_path):
+        # 🔹 Doble verificación de que el archivo realmente existe antes de usarlo
+        if temp_pptx_path is None or not os.path.exists(temp_pptx_path):
             raise FileNotFoundError(f"No se encontró el archivo PPTX en {temp_pptx_path}")
 
         # 🔹 Cargar la presentación
@@ -271,8 +272,8 @@ def convertir_a_jpg(certificado_pptx):
         return None
 
     finally:
-        # 🔹 Eliminar archivos temporales
-        if os.path.exists(temp_pptx_path):
+        # 🔹 Eliminar archivos temporales si existen
+        if temp_pptx_path and os.path.exists(temp_pptx_path):
             os.remove(temp_pptx_path)
         if os.path.exists(temp_img_path):
             os.remove(temp_img_path)
