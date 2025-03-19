@@ -228,13 +228,13 @@ import streamlit as st
 import base64
 import urllib.parse
 
-# URL del conversor online (puede cambiar según el servicio)
-CONVERSOR_URL = "https://www.zamzar.com/convert/pptx-to-png/"
+# URL del conversor online
+CONVERSOR_URL = "https://www.convertio.co/es/pptx-png/"
 
 def generar_link_conversion(pptx_data, nombre_archivo):
-    """Genera un link para subir automáticamente el archivo a Zamzar."""
+    """Genera un link para subir automáticamente el archivo a Convertio."""
     
-    # Convertir archivo a base64 para pasarlo en la URL (solo en algunos servicios)
+    # Convertir archivo a base64 para pasarlo en la URL (si el servicio lo permite)
     pptx_base64 = base64.b64encode(pptx_data.getvalue()).decode()
     
     # Generar URL con el archivo adjunto (si el servicio lo permite)
@@ -266,8 +266,8 @@ if st.session_state.validado:
         )
 
         # Generar link de conversión automática
-        conversion_url = generar_link_conversion(certificado_stream, "certificado.pptx")
+        conversion_url = CONVERSOR_URL  # Redirige a Convertio para subir el PPTX
 
         # Botón para convertir a PNG automáticamente
-        st.markdown(f"[🔄 Convertir a PNG automáticamente]({conversion_url})", unsafe_allow_html=True)
+        st.markdown(f"[🔄 Convertir a PNG automáticamente en Convertio]({conversion_url})", unsafe_allow_html=True)
 
