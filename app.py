@@ -201,4 +201,61 @@ def generar_certificado(nombre, documento, curso, duracion, fecha, qr_img):
         st.error("❌ No se pudo generar el certificado.")
         return None
 
+import os
+import streamlit as st
+from io import BytesIO
+from pptx import Presentation
+from PIL import Image
+import img2pdf
+import tempfile
+
+def pptx_a_pdf_local(certificado_pptx):
+    """Convierte un archivo PPTX a PDF renderizando la diapositiva como imagen."""
+
+    st.info("⏳ Convirtiendo el certificado a PDF...")
+
+    # 🔹 Guardar el archivo PPTX temporalmente
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pptx") as temp_pptx:
+        temp_pptx.write(certificado_pptx.getbuffer())
+        temp_pptx_path = temp_pptx.name
+
+    try:
+        # 🔹 Cargar la presentación
+        prs = Presentation(temp_pptx_path)
+
+        # 🔹 Obtener el tamaño de la diapositiva
+        slide_width = prs.slide_width
+        slide_height = prs.slide_height
+
+        # 🔹 Crear imagen en blanco con tamaño de la diapositiva
+        img = Image.new("RGB", (int(slide_width), int(slide_height)), "white")
+
+        # 🔹 Guardar imagen temporal
+        temp_img_path = temp_pptx_path.replace(".pptx", ".png")
+        img.save(temp_img_path, "PNG")
+
+        # 🔹 Convertir imagen a PDF
+        temp_pdf_path = temp_pptx_path.replace(".pptx", ".pdf")
+        with open(temp_pdf_path, "wb") as pdf_file:
+            pdf_file.write(img2pdf.convert(temp_img_path))
+
+        # 🔹 Leer el PDF en memoria
+        with open(temp_pdf_path, "rb") as pdf_file:
+            pdf_stream = BytesIO(pdf_file.read())
+
+        st.success("✅ Conversión completada. Descarga tu certificado en PDF.")
+
+        return pdf_stream
+
+    except Exception as e:
+        st.error(f"❌ Error al convertir el archivo a PDF: {e}")
+        return None
+
+    finally:
+        # 🔹 Eliminar archivos temporales
+        os.remove(temp_pptx_path)
+        if os.path.exists(temp_img_path):
+            os.remove(temp_img_path)
+        if os.path.exists(temp_pdf_path):
+            os.remove(temp_pdf_path)
 
