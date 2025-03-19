@@ -228,21 +228,19 @@ def convertir_a_jpg(certificado_pptx):
     st.info("⏳ Generando la imagen del certificado...")
 
     try:
-        # 🔹 Guardar el PPTX en memoria antes de escribirlo en disco
-        pptx_stream = BytesIO(certificado_pptx.getbuffer())
-        pptx_stream.seek(0)  # Asegurar que el archivo se lea desde el inicio
+        # 🔹 Verificar si el buffer del PPTX es válido
+        if certificado_pptx is None or certificado_pptx.getbuffer().nbytes == 0:
+            raise ValueError("❌ El archivo PPTX no se generó correctamente. Está vacío o corrupto.")
 
-        # 🔹 Verificar si el archivo PPTX realmente tiene contenido antes de guardarlo
-        if pptx_stream.getbuffer().nbytes == 0:
-            raise ValueError("❌ El archivo PPTX está vacío. No se puede generar una imagen.")
-
-        # 🔹 Guardar el archivo PPTX en un archivo temporal en disco
+        # 🔹 Crear un nuevo archivo PPTX en memoria para garantizar su integridad
+        prs = Presentation(BytesIO(certificado_pptx.getbuffer()))
+        
+        # 🔹 Guardar el nuevo PPTX en un archivo temporal
         temp_pptx_path = os.path.join(tempfile.gettempdir(), "certificado.pptx")
-        with open(temp_pptx_path, "wb") as temp_pptx:
-            temp_pptx.write(pptx_stream.getbuffer())
+        prs.save(temp_pptx_path)
 
-        # 🔹 Esperar para asegurarse de que el sistema haya terminado de escribir el archivo
-        time.sleep(2)
+        # 🔹 Esperar para asegurarnos de que el sistema haya terminado de escribir el archivo
+        time.sleep(1)
 
         # 🔹 Verificar si el archivo realmente existe antes de abrirlo
         if not os.path.exists(temp_pptx_path):
@@ -250,7 +248,7 @@ def convertir_a_jpg(certificado_pptx):
             return None
 
         # 🔹 Verificar el tamaño del archivo antes de abrirlo con `Presentation()`
-        if os.path.getsize(temp_pptx_path) < 1000:  # Un archivo PPTX válido no puede ser tan pequeño
+        if os.path.getsize(temp_pptx_path) < 1000:
             raise ValueError("❌ El archivo PPTX guardado está corrupto o vacío.")
 
         st.success(f"✅ Archivo PPTX guardado correctamente en: {temp_pptx_path}")
