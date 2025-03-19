@@ -224,51 +224,36 @@ if st.session_state.validado:
                 mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
             )
 
-from pptx import Presentation
-from pptx.util import Inches
-from PIL import Image, ImageDraw
-import io
 import streamlit as st
+from pptx import Presentation
+import io
+from pdf2image import convert_from_path
+import tempfile
+import os
 
-def convertir_pptx_a_webp(certificado_stream):
-    """Convierte la diapositiva PPTX en una imagen WEBP de alta calidad."""
+def convertir_pptx_a_png(certificado_stream):
+    """Convierte la diapositiva PPTX en una imagen PNG conservando TODO el diseño."""
     
-    # Guardar el PPTX temporalmente
-    pptx_path = "certificado_temporal.pptx"
-    with open(pptx_path, "wb") as f:
-        f.write(certificado_stream.getbuffer())
+    # Guardar el archivo PPTX temporalmente
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pptx") as tmp_pptx:
+        tmp_pptx.write(certificado_stream.getbuffer())
+        tmp_pptx_path = tmp_pptx.name
 
-    # Abrir la presentación
-    prs = Presentation(pptx_path)
-    slide = prs.slides[0]  # Solo una diapositiva
+    # Convertir PPTX a PDF temporalmente
+    tmp_pdf_path = tmp_pptx_path.replace(".pptx", ".pdf")
+    os.system(f"libreoffice --headless --convert-to pdf {tmp_pptx_path} --outdir {os.path.dirname(tmp_pdf_path)}")
 
-    # Dimensiones en píxeles
-    width_px = int(prs.slide_width.inches * 96)
-    height_px = int(prs.slide_height.inches * 96)
+    # Convertir PDF a Imagen PNG
+    images = convert_from_path(tmp_pdf_path, dpi=300)  # Alta resolución
+    png_buffer = io.BytesIO()
+    images[0].save(png_buffer, format="PNG", quality=100)  # Guardar como PNG
+    png_buffer.seek(0)
 
-    # Crear imagen en blanco
-    img = Image.new("RGB", (width_px, height_px), "white")
-    draw = ImageDraw.Draw(img)
+    # Eliminar archivos temporales
+    os.remove(tmp_pptx_path)
+    os.remove(tmp_pdf_path)
 
-    # Extraer imágenes y textos de la diapositiva
-    for shape in slide.shapes:
-        if shape.shape_type == 13:  # Si es una imagen
-            img_stream = io.BytesIO(shape.image.blob)
-            image_pil = Image.open(img_stream).convert("RGBA")
-            img.paste(image_pil, (shape.left, shape.top), image_pil)
-
-        if shape.has_text_frame:
-            text = shape.text_frame.text
-            left = int(shape.left.inches * 96)
-            top = int(shape.top.inches * 96)
-            draw.text((left, top), text, fill="black")
-
-    # Guardar la imagen en WEBP
-    webp_buffer = io.BytesIO()
-    img.save(webp_buffer, format="WEBP", quality=100)
-    webp_buffer.seek(0)
-
-    return webp_buffer
+    return png_buffer
 
 # Generar el certificado en PPTX
 if st.session_state.validado:
@@ -284,13 +269,13 @@ if st.session_state.validado:
     if certificado_stream:
         st.success("✅ Certificado generado con éxito.")
 
-        # Convertir PPTX a WEBP
-        certificado_webp = convertir_pptx_a_webp(certificado_stream)
+        # Convertir PPTX a PNG manteniendo TODO el diseño
+        certificado_png = convertir_pptx_a_png(certificado_stream)
 
         # Botón de descarga en Streamlit
         st.download_button(
-            label="⬇️ Descargar Certificado en WEBP",
-            data=certificado_webp,
-            file_name=f"Certificado_{st.session_state.nombre_estudiante}.webp",
-            mime="image/webp"
+            label="⬇️ Descargar Certificado en PNG",
+            data=certificado_png,
+            file_name=f"Certificado_{st.session_state.nombre_estudiante}.png",
+            mime="image/png"
         )
