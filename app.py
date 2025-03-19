@@ -1,10 +1,4 @@
-import os
 import streamlit as st
-from io import BytesIO
-from pptx import Presentation
-from PIL import Image
-import img2pdf
-import tempfile  # 🔹 Asegúrate de que esta línea esté presente
 import pandas as pd
 
 # Configuración básica de la aplicación
@@ -149,12 +143,7 @@ plantilla_stream = cargar_plantilla()
 from pptx.dml.color import RGBColor
 
 #Generar certificado
-import img2pdf
-from PIL import Image
-
 def generar_certificado(nombre, documento, curso, duracion, fecha, qr_img):
-    """Genera el certificado en formato PPTX y lo convierte a PDF."""
-    
     if plantilla_stream:
         prs = Presentation(plantilla_stream)  # Cargar la plantilla en memoria
 
@@ -202,120 +191,12 @@ def generar_certificado(nombre, documento, curso, duracion, fecha, qr_img):
                     slide.shapes.add_picture(qr_stream, left, top, width, height)
                     break  # Detener la búsqueda después de insertar el QR
 
-        # Guardar el PPTX en memoria
+        # Guardar el certificado como un archivo en memoria
         certificado_stream = BytesIO()
         prs.save(certificado_stream)
         certificado_stream.seek(0)
-
-        # Convertir el PPTX a PDF usando una imagen intermedia
-        return convertir_a_jpg(certificado_stream)
-
+        
+        return certificado_stream
     else:
         st.error("❌ No se pudo generar el certificado.")
         return None
-
-import os
-import streamlit as st
-from io import BytesIO
-from pptx import Presentation
-from PIL import Image
-import tempfile
-import time
-
-def convertir_a_jpg(certificado_pptx):
-    """Convierte el PPTX generado a una imagen JPG asegurando que el archivo sea válido."""
-
-    st.info("⏳ Generando la imagen del certificado...")
-
-    try:
-        # 🔹 Verificar si el buffer del PPTX es válido
-        if certificado_pptx is None or certificado_pptx.getbuffer().nbytes == 0:
-            raise ValueError("❌ El archivo PPTX no se generó correctamente. Está vacío o corrupto.")
-
-        # 🔹 Crear un nuevo archivo PPTX en memoria para garantizar su integridad
-        prs = Presentation(BytesIO(certificado_pptx.getbuffer()))
-        
-        # 🔹 Guardar el nuevo PPTX en un archivo temporal
-        temp_pptx_path = os.path.join(tempfile.gettempdir(), "certificado.pptx")
-        prs.save(temp_pptx_path)
-
-        # 🔹 Esperar para asegurarnos de que el sistema haya terminado de escribir el archivo
-        time.sleep(1)
-
-        # 🔹 Verificar si el archivo realmente existe antes de abrirlo
-        if not os.path.exists(temp_pptx_path):
-            st.error(f"❌ ERROR: No se encontró el archivo PPTX en {temp_pptx_path}")
-            return None
-
-        # 🔹 Verificar el tamaño del archivo antes de abrirlo con `Presentation()`
-        if os.path.getsize(temp_pptx_path) < 1000:
-            raise ValueError("❌ El archivo PPTX guardado está corrupto o vacío.")
-
-        st.success(f"✅ Archivo PPTX guardado correctamente en: {temp_pptx_path}")
-
-        # 🔹 Intentar abrir el archivo con `Presentation()`
-        try:
-            prs = Presentation(temp_pptx_path)
-        except Exception as e:
-            raise ValueError(f"❌ Error al abrir el archivo PPTX con python-pptx: {e}")
-
-        # 🔹 Verificar si el PPTX tiene diapositivas
-        if not prs.slides:
-            raise ValueError("❌ El archivo PPTX no tiene diapositivas.")
-
-        slide = prs.slides[0]  # Obtener la primera diapositiva
-
-        # 🔹 Crear una imagen en blanco con el tamaño de la diapositiva
-        temp_img_path = temp_pptx_path.replace(".pptx", ".jpg")
-        img = Image.new("RGB", (1280, 720), "white")
-        img.save(temp_img_path, "JPEG", quality=95)
-
-        # 🔹 Verificar que la imagen se generó correctamente
-        if not os.path.exists(temp_img_path):
-            st.error(f"❌ ERROR: No se pudo generar la imagen en {temp_img_path}")
-            return None
-
-        # 🔹 Leer la imagen en memoria
-        with open(temp_img_path, "rb") as img_file:
-            img_stream = BytesIO(img_file.read())
-
-        st.success("✅ Imagen generada correctamente. Descarga tu certificado en JPG.")
-
-        return img_stream
-
-    except Exception as e:
-        st.error(f"❌ Error al generar la imagen JPG: {e}")
-        return None
-
-    finally:
-        # 🔹 Eliminar archivos temporales si existen
-        if os.path.exists(temp_pptx_path):
-            os.remove(temp_pptx_path)
-        if os.path.exists(temp_img_path):
-            os.remove(temp_img_path)
-
-if st.button("🎓 Generar Certificado en Imagen JPG"):
-    if st.session_state.validado:
-        certificado_jpg = convertir_a_jpg(
-            generar_certificado(
-                st.session_state.nombre_estudiante,
-                st.session_state.documento_estudiante,
-                curso_seleccionado,
-                df_cursos[df_cursos["Código"] == codigo_curso]["Duración"].values[0],
-                df_cursos[df_cursos["Código"] == codigo_curso]["Fecha"].values[0],
-                qr
-            )
-        )
-
-        if certificado_jpg:
-            st.success("✅ Certificado generado en JPG.")
-            st.download_button(
-                label="📥 Descargar Certificado en JPG",
-                data=certificado_jpg,
-                file_name=f"Certificado_{st.session_state['nombre_estudiante']}.jpg",
-                mime="image/jpeg"
-            )
-        else:
-            st.error("❌ No se pudo generar la imagen JPG.")
-    else:
-        st.error("⚠️ No se puede generar el certificado sin validación.")
