@@ -3,4 +3,3 @@ pillow
 img2pdf
 python-pptx
 qrcode[pil]
-pptx2pdf
