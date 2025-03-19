@@ -226,13 +226,14 @@ if st.session_state.validado:
 
 import streamlit as st
 from pptx import Presentation
-from pptx.enum.shapes import MSO_SHAPE_TYPE
-from PIL import Image, ImageDraw, ImageSequence
 import io
+import cv2
+import numpy as np
+from PIL import Image
 
-def convertir_pptx_a_gif(certificado_stream):
-    """Convierte la diapositiva PPTX en un GIF animado sin perder detalles."""
-    
+def convertir_pptx_a_video(certificado_stream):
+    """Convierte la diapositiva PPTX en un video MP4 de alta calidad sin perder diseño."""
+
     # Guardar el archivo PPTX temporalmente
     pptx_path = "certificado_temporal.pptx"
     with open(pptx_path, "wb") as f:
@@ -240,35 +241,51 @@ def convertir_pptx_a_gif(certificado_stream):
 
     # Cargar la presentación
     prs = Presentation(pptx_path)
-    slide = prs.slides[0]  # Solo una diapositiva
+    slide = prs.slides[0]  # Primera y única diapositiva
 
-    # Dimensiones en píxeles
+    # Dimensiones en píxeles (PowerPoint usa puntos de 1/72 pulgadas)
     width_px = int(prs.slide_width.inches * 96)
     height_px = int(prs.slide_height.inches * 96)
 
-    # Crear una imagen en blanco con fondo blanco
+    # Crear una imagen en blanco
     img = Image.new("RGB", (width_px, height_px), "white")
-    draw = ImageDraw.Draw(img)
 
-    # Extraer imágenes y textos de la diapositiva
+    # Renderizar imágenes y texto de la diapositiva
     for shape in slide.shapes:
-        if shape.shape_type == MSO_SHAPE_TYPE.PICTURE:  # Si es una imagen
-            img_stream = io.BytesIO(shape.image.blob)
-            image_pil = Image.open(img_stream).convert("RGBA")
-            img.paste(image_pil, (shape.left, shape.top), image_pil)
-
         if shape.has_text_frame:
             text = shape.text_frame.text
             left = int(shape.left.inches * 96)
             top = int(shape.top.inches * 96)
+            draw = ImageDraw.Draw(img)
             draw.text((left, top), text, fill="black")
 
-    # Guardar la imagen como GIF
-    gif_buffer = io.BytesIO()
-    img.save(gif_buffer, format="GIF", save_all=True, append_images=[img], loop=0, duration=1000)
-    gif_buffer.seek(0)
+        if shape.shape_type == 13:  # Si es una imagen
+            img_stream = io.BytesIO(shape.image.blob)
+            image_pil = Image.open(img_stream).convert("RGBA")
+            img.paste(image_pil, (shape.left, shape.top), image_pil)
 
-    return gif_buffer
+    # Convertir la imagen a un array numpy para OpenCV
+    frame = np.array(img)
+
+    # Crear el video con OpenCV
+    video_path = "certificado.mp4"
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")  # Codec MP4
+    fps = 1  # 1 frame por segundo
+    duration = 5  # 5 segundos de duración
+    out = cv2.VideoWriter(video_path, fourcc, fps, (width_px, height_px))
+
+    for _ in range(fps * duration):  # Agregar múltiples frames para duración
+        out.write(frame)
+
+    out.release()
+
+    # Leer el video generado en memoria
+    video_buffer = io.BytesIO()
+    with open(video_path, "rb") as f:
+        video_buffer.write(f.read())
+    video_buffer.seek(0)
+
+    return video_buffer
 
 # Generar el certificado en PPTX
 if st.session_state.validado:
@@ -284,13 +301,13 @@ if st.session_state.validado:
     if certificado_stream:
         st.success("✅ Certificado generado con éxito.")
 
-        # Convertir PPTX a GIF manteniendo TODO el diseño
-        certificado_gif = convertir_pptx_a_gif(certificado_stream)
+        # Convertir PPTX a MP4 manteniendo TODO el diseño
+        certificado_video = convertir_pptx_a_video(certificado_stream)
 
         # Botón de descarga en Streamlit
         st.download_button(
-            label="⬇️ Descargar Certificado en GIF",
-            data=certificado_gif,
-            file_name=f"Certificado_{st.session_state.nombre_estudiante}.gif",
-            mime="image/gif"
+            label="🎥 Descargar Certificado en Video MP4",
+            data=certificado_video,
+            file_name=f"Certificado_{st.session_state.nombre_estudiante}.mp4",
+            mime="video/mp4"
         )
