@@ -232,16 +232,27 @@ def convertir_a_jpg(certificado_pptx):
             temp_pptx.write(certificado_pptx.getbuffer())
             temp_pptx_path = temp_pptx.name
 
+        # **Verificar que el archivo se guardó correctamente**
+        if not os.path.exists(temp_pptx_path):
+            raise FileNotFoundError(f"No se encontró el archivo PPTX en {temp_pptx_path}")
+
         # Cargar la presentación
         prs = Presentation(temp_pptx_path)
 
         # Obtener la primera diapositiva
+        if not prs.slides:
+            raise ValueError("El archivo PPTX no tiene diapositivas.")
+
         slide = prs.slides[0]
 
         # Simular renderización de la diapositiva (por ahora, creamos una imagen blanca)
         temp_img_path = temp_pptx_path.replace(".pptx", ".jpg")
         img = Image.new("RGB", (1280, 720), "white")
         img.save(temp_img_path, "JPEG", quality=95)
+
+        # Verificar que la imagen se generó correctamente
+        if not os.path.exists(temp_img_path):
+            raise FileNotFoundError(f"No se pudo generar la imagen en {temp_img_path}")
 
         # Leer la imagen en memoria
         with open(temp_img_path, "rb") as img_file:
@@ -257,7 +268,8 @@ def convertir_a_jpg(certificado_pptx):
 
     finally:
         # Eliminar archivos temporales
-        os.remove(temp_pptx_path)
+        if os.path.exists(temp_pptx_path):
+            os.remove(temp_pptx_path)
         if os.path.exists(temp_img_path):
             os.remove(temp_img_path)
 
