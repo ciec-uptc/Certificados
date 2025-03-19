@@ -224,59 +224,63 @@ if st.session_state.validado:
                 mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
             )
 
-from pptx2pdf import convert
-from pptx.enum.shapes import MSO_SHAPE_TYPE
-from PIL import Image
+from pptx.util import Inches
+from PIL import Image, ImageDraw
+import io
 
 def convertir_a_imagen(certificado_stream):
-    """Convierte el certificado en PPTX a una imagen PNG de alta calidad."""
+    """Convierte el certificado PPTX a una imagen PNG de alta calidad."""
     with open("certificado_temporal.pptx", "wb") as f:
         f.write(certificado_stream.getbuffer())
 
-    # Abrir la presentación
+    # Cargar la presentación
     prs = Presentation("certificado_temporal.pptx")
+    slide = prs.slides[0]  # Solo tiene una diapositiva
 
-    # Seleccionar la primera diapositiva
-    slide = prs.slides[0]
-
-    # Definir tamaño de la imagen
-    width = prs.slide_width
-    height = prs.slide_height
+    # Dimensiones en píxeles (pptx usa puntos de 1/72 pulgadas)
+    width_px = int(prs.slide_width.inches * 96)
+    height_px = int(prs.slide_height.inches * 96)
 
     # Crear una imagen en blanco
-    img = Image.new("RGB", (width, height), (255, 255, 255))
+    img = Image.new("RGB", (width_px, height_px), (255, 255, 255))
+    draw = ImageDraw.Draw(img)
 
-    # Dibujar los elementos en la imagen
+    # Dibujar los textos en la imagen manteniendo posiciones
     for shape in slide.shapes:
-        if shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
-            # Convertir imagen a PIL y pegarla en el lienzo
-            image_stream = BytesIO(shape.image.blob)
-            image_pil = Image.open(image_stream)
-            img.paste(image_pil, (shape.left, shape.top))
+        if shape.has_text_frame:
+            text = shape.text_frame.text
+            left = int(shape.left.inches * 96)
+            top = int(shape.top.inches * 96)
+            draw.text((left, top), text, fill="black")
 
-    # Guardar la imagen final como PNG
-    img_path = "certificado_final.png"
-    img.save(img_path, "PNG", quality=100)
+    # Guardar la imagen en memoria
+    img_buffer = io.BytesIO()
+    img.save(img_buffer, format="PNG", quality=100)
+    img_buffer.seek(0)
 
-    return img_path
+    return img_buffer
 
 # Generar el certificado en PPTX
-certificado_stream = generar_certificado(
-    st.session_state.nombre_estudiante,
-    st.session_state.documento_estudiante,
-    curso_seleccionado,
-    df_cursos[df_cursos["Código"] == codigo_curso]["Duración"].values[0],
-    df_cursos[df_cursos["Código"] == codigo_curso]["Fecha"].values[0],
-    qr
-)
+if st.session_state.validado:
+    certificado_stream = generar_certificado(
+        st.session_state.nombre_estudiante,
+        st.session_state.documento_estudiante,
+        curso_seleccionado,
+        df_cursos[df_cursos["Código"] == codigo_curso]["Duración"].values[0],
+        df_cursos[df_cursos["Código"] == codigo_curso]["Fecha"].values[0],
+        qr
+    )
 
-# Convertir a imagen
-imagen_certificado = convertir_a_imagen(certificado_stream)
+    if certificado_stream:
+        st.success("✅ Certificado generado con éxito.")
 
-# Botón de descarga
-st.download_button(
-    label="⬇️ Descargar Certificado en PNG",
-    data=open(imagen_certificado, "rb").read(),
-    file_name=f"Certificado_{st.session_state.nombre_estudiante}.png",
-    mime="image/png"
-)
+        # Convertir a imagen PNG
+        imagen_certificado = convertir_a_imagen(certificado_stream)
+
+        # Botón de descarga
+        st.download_button(
+            label="⬇️ Descargar Certificado en PNG",
+            data=imagen_certificado,
+            file_name=f"Certificado_{st.session_state.nombre_estudiante}.png",
+            mime="image/png"
+        )
