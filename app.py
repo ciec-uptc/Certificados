@@ -1,4 +1,10 @@
+import os
 import streamlit as st
+from io import BytesIO
+from pptx import Presentation
+from PIL import Image
+import img2pdf
+import tempfile  # 🔹 Asegúrate de que esta línea esté presente
 import pandas as pd
 
 # Configuración básica de la aplicación
