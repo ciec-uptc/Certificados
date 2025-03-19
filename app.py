@@ -226,32 +226,41 @@ if st.session_state.validado:
 
 import streamlit as st
 from pptx import Presentation
+from pptx.enum.shapes import MSO_SHAPE_TYPE
+from PIL import Image, ImageDraw
 import io
-from pdf2image import convert_from_path
-import tempfile
-import os
 
 def convertir_pptx_a_png(certificado_stream):
-    """Convierte la diapositiva PPTX en una imagen PNG conservando TODO el diseño."""
+    """Convierte la diapositiva PPTX en una imagen PNG sin perder formato."""
     
     # Guardar el archivo PPTX temporalmente
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pptx") as tmp_pptx:
-        tmp_pptx.write(certificado_stream.getbuffer())
-        tmp_pptx_path = tmp_pptx.name
+    pptx_path = "certificado_temporal.pptx"
+    with open(pptx_path, "wb") as f:
+        f.write(certificado_stream.getbuffer())
 
-    # Convertir PPTX a PDF temporalmente
-    tmp_pdf_path = tmp_pptx_path.replace(".pptx", ".pdf")
-    os.system(f"libreoffice --headless --convert-to pdf {tmp_pptx_path} --outdir {os.path.dirname(tmp_pdf_path)}")
+    # Cargar la presentación
+    prs = Presentation(pptx_path)
+    slide = prs.slides[0]  # Solo una diapositiva
 
-    # Convertir PDF a Imagen PNG
-    images = convert_from_path(tmp_pdf_path, dpi=300)  # Alta resolución
+    # Dimensiones en píxeles (PowerPoint usa puntos de 1/72 pulgadas)
+    width_px = int(prs.slide_width.inches * 96)
+    height_px = int(prs.slide_height.inches * 96)
+
+    # Crear una imagen en blanco con fondo blanco
+    img = Image.new("RGB", (width_px, height_px), "white")
+    draw = ImageDraw.Draw(img)
+
+    # Extraer imágenes de la diapositiva
+    for shape in slide.shapes:
+        if shape.shape_type == MSO_SHAPE_TYPE.PICTURE:  # Si es una imagen
+            img_stream = io.BytesIO(shape.image.blob)
+            image_pil = Image.open(img_stream).convert("RGBA")
+            img.paste(image_pil, (shape.left, shape.top), image_pil)
+
+    # Guardar la imagen en memoria
     png_buffer = io.BytesIO()
-    images[0].save(png_buffer, format="PNG", quality=100)  # Guardar como PNG
+    img.save(png_buffer, format="PNG", quality=100)
     png_buffer.seek(0)
-
-    # Eliminar archivos temporales
-    os.remove(tmp_pptx_path)
-    os.remove(tmp_pdf_path)
 
     return png_buffer
 
