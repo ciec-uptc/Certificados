@@ -225,27 +225,35 @@ if st.session_state.validado:
             )
 
 import streamlit as st
-import os
-from pptx import Presentation
+import requests
+import time
 import io
 
-def convertir_pptx_a_pdf(certificado_stream):
-    """Convierte el PPTX a un archivo PDF de solo lectura."""
+# URL del servicio de conversión (Convertio, CloudConvert u otros)
+CONVERSOR_URL = "https://www.cloudconvert.com/api/v2/convert"
+
+def convertir_pptx_a_pdf_automaticamente(certificado_stream):
+    """Sube el PPTX a un servicio web y obtiene el PDF de solo lectura automáticamente."""
 
     # Guardar el archivo PPTX temporalmente
-    pptx_path = "certificado_temporal.pptx"
-    with open(pptx_path, "wb") as f:
-        f.write(certificado_stream.getbuffer())
+    files = {
+        "input": ("certificado.pptx", certificado_stream, "application/vnd.openxmlformats-officedocument.presentationml.presentation")
+    }
 
-    # Convertir PPTX a PDF usando LibreOffice (asegúrate de tener LibreOffice instalado)
-    pdf_path = "certificado_temporal.pdf"
-    os.system(f"libreoffice --headless --convert-to pdf {pptx_path} --outdir ./")
+    # Enviar solicitud para convertir PPTX a PDF
+    response = requests.post(CONVERSOR_URL, files=files)
 
-    # Leer el PDF generado en memoria
-    if os.path.exists(pdf_path):
-        with open(pdf_path, "rb") as pdf_file:
-            pdf_bytes = pdf_file.read()
-        return io.BytesIO(pdf_bytes)
+    if response.status_code == 200:
+        job_id = response.json().get("id")
+
+        # Esperar la conversión
+        st.info("⏳ Convirtiendo el certificado a PDF...")
+        time.sleep(15)  # Ajustar según la velocidad del servicio
+
+        # Obtener el enlace de descarga del PDF
+        download_url = f"https://www.cloudconvert.com/api/v2/jobs/{job_id}/download"
+        return download_url
+
     return None
 
 # Generar el certificado en PPTX
@@ -262,16 +270,11 @@ if st.session_state.validado:
     if certificado_stream:
         st.success("✅ Certificado generado con éxito.")
 
-        # Convertir PPTX a PDF de solo lectura
-        certificado_pdf = convertir_pptx_a_pdf(certificado_stream)
+        # Convertir PPTX a PDF de solo lectura automáticamente
+        download_url = convertir_pptx_a_pdf_automaticamente(certificado_stream)
 
-        if certificado_pdf:
+        if download_url:
             # Botón de descarga para el archivo PDF de solo lectura
-            st.download_button(
-                label="⬇️ Descargar Certificado en PDF (Solo Lectura)",
-                data=certificado_pdf,
-                file_name=f"Certificado_{st.session_state.nombre_estudiante}.pdf",
-                mime="application/pdf"
-            )
+            st.markdown(f"[⬇️ Descargar Certificado en PDF (Solo Lectura)]({download_url})", unsafe_allow_html=True)
         else:
             st.error("❌ No se pudo convertir el PPTX a PDF.")
