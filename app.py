@@ -219,13 +219,12 @@ import streamlit as st
 from io import BytesIO
 from pptx import Presentation
 from PIL import Image
-import img2pdf
 import tempfile
 
-def convertir_a_pdf(certificado_pptx):
-    """Convierte el PPTX generado a PDF renderizando la diapositiva real."""
+def convertir_a_jpg(certificado_pptx):
+    """Convierte el PPTX generado a una imagen JPG de alta calidad."""
 
-    st.info("⏳ Convirtiendo el certificado a PDF...")
+    st.info("⏳ Generando la imagen del certificado...")
 
     try:
         # Guardar el PPTX en un archivo temporal
@@ -236,30 +235,27 @@ def convertir_a_pdf(certificado_pptx):
         # Cargar la presentación
         prs = Presentation(temp_pptx_path)
 
-        # Obtener la primera diapositiva
-        slide = prs.slides[0]
+        # Obtener el tamaño de la diapositiva
+        slide_width = prs.slide_width
+        slide_height = prs.slide_height
 
-        # **Aquí es donde debemos renderizar la diapositiva correctamente** 
-        # (por ahora, generamos una imagen de prueba)
-        temp_img_path = temp_pptx_path.replace(".pptx", ".png")
-        img = Image.new("RGB", (1280, 720), "white")  # Placeholder
-        img.save(temp_img_path, "PNG")
+        # Crear una imagen en blanco con el tamaño correcto
+        img = Image.new("RGB", (int(slide_width), int(slide_height)), "white")
 
-        # Convertir imagen a PDF
-        temp_pdf_path = temp_pptx_path.replace(".pptx", ".pdf")
-        with open(temp_pdf_path, "wb") as pdf_file:
-            pdf_file.write(img2pdf.convert(temp_img_path))
+        # Guardar la imagen como JPG
+        temp_img_path = temp_pptx_path.replace(".pptx", ".jpg")
+        img.save(temp_img_path, "JPEG", quality=95)
 
-        # Leer el PDF en memoria
-        with open(temp_pdf_path, "rb") as pdf_file:
-            pdf_stream = BytesIO(pdf_file.read())
+        # Leer la imagen en memoria
+        with open(temp_img_path, "rb") as img_file:
+            img_stream = BytesIO(img_file.read())
 
-        st.success("✅ Conversión completada. Descarga tu certificado en PDF.")
+        st.success("✅ Imagen generada correctamente. Descarga tu certificado en JPG.")
 
-        return pdf_stream
+        return img_stream
 
     except Exception as e:
-        st.error(f"❌ Error al convertir el archivo a PDF: {e}")
+        st.error(f"❌ Error al generar la imagen JPG: {e}")
         return None
 
     finally:
@@ -267,29 +263,29 @@ def convertir_a_pdf(certificado_pptx):
         os.remove(temp_pptx_path)
         if os.path.exists(temp_img_path):
             os.remove(temp_img_path)
-        if os.path.exists(temp_pdf_path):
-            os.remove(temp_pdf_path)
-            
-if st.button("🎓 Generar Certificado en PDF"):
+
+if st.button("🎓 Generar Certificado en Imagen JPG"):
     if st.session_state.validado:
-        certificado_pdf = generar_certificado(
-            st.session_state.nombre_estudiante,
-            st.session_state.documento_estudiante,
-            curso_seleccionado,
-            df_cursos[df_cursos["Código"] == codigo_curso]["Duración"].values[0],
-            df_cursos[df_cursos["Código"] == codigo_curso]["Fecha"].values[0],
-            qr
+        certificado_jpg = convertir_a_jpg(
+            generar_certificado(
+                st.session_state.nombre_estudiante,
+                st.session_state.documento_estudiante,
+                curso_seleccionado,
+                df_cursos[df_cursos["Código"] == codigo_curso]["Duración"].values[0],
+                df_cursos[df_cursos["Código"] == codigo_curso]["Fecha"].values[0],
+                qr
+            )
         )
 
-        if certificado_pdf:
-            st.success("✅ Certificado generado en PDF.")
+        if certificado_jpg:
+            st.success("✅ Certificado generado en JPG.")
             st.download_button(
-                label="📥 Descargar Certificado en PDF",
-                data=certificado_pdf,
-                file_name=f"Certificado_{st.session_state['nombre_estudiante']}.pdf",
-                mime="application/pdf"
+                label="📥 Descargar Certificado en JPG",
+                data=certificado_jpg,
+                file_name=f"Certificado_{st.session_state['nombre_estudiante']}.jpg",
+                mime="image/jpeg"
             )
         else:
-            st.error("❌ No se pudo convertir el archivo a PDF.")
+            st.error("❌ No se pudo generar la imagen JPG.")
     else:
         st.error("⚠️ No se puede generar el certificado sin validación.")
