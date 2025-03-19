@@ -1,3 +1,4 @@
 qrcode[pil]
 python-pptx
 img2pdf
+pillow
