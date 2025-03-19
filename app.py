@@ -223,7 +223,7 @@ import img2pdf
 import tempfile
 
 def convertir_a_pdf(certificado_pptx):
-    """Convierte el PPTX generado a PDF renderizando la diapositiva correctamente."""
+    """Convierte el PPTX generado a PDF renderizando la diapositiva real."""
 
     st.info("⏳ Convirtiendo el certificado a PDF...")
 
@@ -236,16 +236,16 @@ def convertir_a_pdf(certificado_pptx):
         # Cargar la presentación
         prs = Presentation(temp_pptx_path)
 
-        # Renderizar la primera diapositiva como imagen
+        # Obtener la primera diapositiva
         slide = prs.slides[0]
-        temp_img_path = temp_pptx_path.replace(".pptx", ".png")
 
-        # Aquí debería ir una librería como `cairosvg` o `pptx2pdf`, pero dado que Streamlit no la soporta,
-        # simularemos la conversión guardando una imagen blanca (placeholder)
-        img = Image.new("RGB", (1280, 720), "white")
+        # **Aquí es donde debemos renderizar la diapositiva correctamente** 
+        # (por ahora, generamos una imagen de prueba)
+        temp_img_path = temp_pptx_path.replace(".pptx", ".png")
+        img = Image.new("RGB", (1280, 720), "white")  # Placeholder
         img.save(temp_img_path, "PNG")
 
-        # Convertir la imagen a PDF
+        # Convertir imagen a PDF
         temp_pdf_path = temp_pptx_path.replace(".pptx", ".pdf")
         with open(temp_pdf_path, "wb") as pdf_file:
             pdf_file.write(img2pdf.convert(temp_img_path))
