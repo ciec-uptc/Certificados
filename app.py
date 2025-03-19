@@ -200,3 +200,26 @@ def generar_certificado(nombre, documento, curso, duracion, fecha, qr_img):
     else:
         st.error("❌ No se pudo generar el certificado.")
         return None
+
+# Botón para generar el certificado y permitir la descarga
+if st.session_state.validado:
+    if st.button("📜 Generar Certificado"):
+        certificado_stream = generar_certificado(
+            st.session_state.nombre_estudiante,
+            st.session_state.documento_estudiante,
+            curso_seleccionado,
+            df_cursos[df_cursos["Código"] == codigo_curso]["Duración"].values[0],
+            df_cursos[df_cursos["Código"] == codigo_curso]["Fecha"].values[0],
+            qr
+        )
+
+        if certificado_stream:
+            st.success("✅ Certificado generado con éxito.")
+            
+            # Botón de descarga
+            st.download_button(
+                label="⬇️ Descargar Certificado",
+                data=certificado_stream,
+                file_name=f"Certificado_{st.session_state.nombre_estudiante}.pptx",
+                mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
+            )
