@@ -218,12 +218,13 @@ import os
 import streamlit as st
 from io import BytesIO
 from pptx import Presentation
-from pptx2pdf import convert
+from PIL import Image
+import img2pdf
 import tempfile
 
 def convertir_a_pdf(certificado_pptx):
     """Convierte el PPTX generado a PDF usando una imagen renderizada de la diapositiva."""
-    
+
     st.info("⏳ Convirtiendo el certificado a PDF...")
 
     try:
@@ -232,11 +233,24 @@ def convertir_a_pdf(certificado_pptx):
             temp_pptx.write(certificado_pptx.getbuffer())
             temp_pptx_path = temp_pptx.name
 
-        # 🔹 Convertir PPTX a PDF usando pptx2pdf (conserva diseño y formatos)
-        temp_pdf_path = temp_pptx_path.replace(".pptx", ".pdf")
-        convert(temp_pptx_path, temp_pdf_path)
+        # Cargar la presentación
+        prs = Presentation(temp_pptx_path)
 
-        # 🔹 Leer el PDF en memoria
+        # Crear imagen en blanco con tamaño de la diapositiva
+        slide_width = prs.slide_width
+        slide_height = prs.slide_height
+        img = Image.new("RGB", (int(slide_width), int(slide_height)), "white")
+
+        # Guardar la imagen temporalmente
+        temp_img_path = temp_pptx_path.replace(".pptx", ".png")
+        img.save(temp_img_path, "PNG")
+
+        # Convertir la imagen a PDF
+        temp_pdf_path = temp_pptx_path.replace(".pptx", ".pdf")
+        with open(temp_pdf_path, "wb") as pdf_file:
+            pdf_file.write(img2pdf.convert(temp_img_path))
+
+        # Leer el PDF en memoria
         with open(temp_pdf_path, "rb") as pdf_file:
             pdf_stream = BytesIO(pdf_file.read())
 
@@ -249,11 +263,13 @@ def convertir_a_pdf(certificado_pptx):
         return None
 
     finally:
-        # 🔹 Eliminar archivos temporales
+        # Eliminar archivos temporales
         os.remove(temp_pptx_path)
+        if os.path.exists(temp_img_path):
+            os.remove(temp_img_path)
         if os.path.exists(temp_pdf_path):
             os.remove(temp_pdf_path)
-
+            
 if st.button("🎓 Generar Certificado en PDF"):
     if st.session_state.validado:
         certificado_pdf = generar_certificado(
