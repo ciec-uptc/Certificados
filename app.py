@@ -226,14 +226,13 @@ if st.session_state.validado:
 
 import streamlit as st
 from pptx import Presentation
+from pptx.enum.shapes import MSO_SHAPE_TYPE
+from PIL import Image, ImageDraw
 import io
-import cv2
-import numpy as np
-from PIL import Image
 
-def convertir_pptx_a_video(certificado_stream):
-    """Convierte la diapositiva PPTX en un video MP4 de alta calidad sin perder diseño."""
-
+def convertir_pptx_a_tiff(certificado_stream):
+    """Convierte la diapositiva PPTX en una imagen TIFF sin perder detalles."""
+    
     # Guardar el archivo PPTX temporalmente
     pptx_path = "certificado_temporal.pptx"
     with open(pptx_path, "wb") as f:
@@ -243,49 +242,33 @@ def convertir_pptx_a_video(certificado_stream):
     prs = Presentation(pptx_path)
     slide = prs.slides[0]  # Primera y única diapositiva
 
-    # Dimensiones en píxeles (PowerPoint usa puntos de 1/72 pulgadas)
+    # Dimensiones en píxeles
     width_px = int(prs.slide_width.inches * 96)
     height_px = int(prs.slide_height.inches * 96)
 
-    # Crear una imagen en blanco
+    # Crear una imagen en blanco con fondo blanco
     img = Image.new("RGB", (width_px, height_px), "white")
+    draw = ImageDraw.Draw(img)
 
-    # Renderizar imágenes y texto de la diapositiva
+    # Extraer imágenes y textos de la diapositiva
     for shape in slide.shapes:
-        if shape.has_text_frame:
-            text = shape.text_frame.text
-            left = int(shape.left.inches * 96)
-            top = int(shape.top.inches * 96)
-            draw = ImageDraw.Draw(img)
-            draw.text((left, top), text, fill="black")
-
-        if shape.shape_type == 13:  # Si es una imagen
+        if shape.shape_type == MSO_SHAPE_TYPE.PICTURE:  # Si es una imagen
             img_stream = io.BytesIO(shape.image.blob)
             image_pil = Image.open(img_stream).convert("RGBA")
             img.paste(image_pil, (shape.left, shape.top), image_pil)
 
-    # Convertir la imagen a un array numpy para OpenCV
-    frame = np.array(img)
+        if shape.has_text_frame:
+            text = shape.text_frame.text
+            left = int(shape.left.inches * 96)
+            top = int(shape.top.inches * 96)
+            draw.text((left, top), text, fill="black")
 
-    # Crear el video con OpenCV
-    video_path = "certificado.mp4"
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v")  # Codec MP4
-    fps = 1  # 1 frame por segundo
-    duration = 5  # 5 segundos de duración
-    out = cv2.VideoWriter(video_path, fourcc, fps, (width_px, height_px))
+    # Guardar la imagen en TIFF
+    tiff_buffer = io.BytesIO()
+    img.save(tiff_buffer, format="TIFF", quality=100)
+    tiff_buffer.seek(0)
 
-    for _ in range(fps * duration):  # Agregar múltiples frames para duración
-        out.write(frame)
-
-    out.release()
-
-    # Leer el video generado en memoria
-    video_buffer = io.BytesIO()
-    with open(video_path, "rb") as f:
-        video_buffer.write(f.read())
-    video_buffer.seek(0)
-
-    return video_buffer
+    return tiff_buffer
 
 # Generar el certificado en PPTX
 if st.session_state.validado:
@@ -301,13 +284,13 @@ if st.session_state.validado:
     if certificado_stream:
         st.success("✅ Certificado generado con éxito.")
 
-        # Convertir PPTX a MP4 manteniendo TODO el diseño
-        certificado_video = convertir_pptx_a_video(certificado_stream)
+        # Convertir PPTX a TIFF manteniendo TODO el diseño
+        certificado_tiff = convertir_pptx_a_tiff(certificado_stream)
 
         # Botón de descarga en Streamlit
         st.download_button(
-            label="🎥 Descargar Certificado en Video MP4",
-            data=certificado_video,
-            file_name=f"Certificado_{st.session_state.nombre_estudiante}.mp4",
-            mime="video/mp4"
+            label="⬇️ Descargar Certificado en TIFF",
+            data=certificado_tiff,
+            file_name=f"Certificado_{st.session_state.nombre_estudiante}.tiff",
+            mime="image/tiff"
         )
